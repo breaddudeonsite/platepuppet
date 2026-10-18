@@ -19,6 +19,8 @@ button.on{background:var(--ac);color:#fff;border-color:var(--ac)}label{display:f
 input[type=number]{width:54px}input[type=range]{width:110px}.mu{color:var(--mu)}[hidden]{display:none!important}
 #tlw{position:relative;flex:1;min-width:180px}#tl{width:100%}#ticks{position:relative;height:8px}#ticks i{position:absolute;top:0;width:3px;height:8px;background:var(--ac);border-radius:2px}
 #ticks i.s{background:#3498db;top:-2px;height:12px;width:4px}
+details.sec{background:var(--pn);border:1px solid var(--ln);border-radius:10px;margin:8px 0;padding:0 10px}details.sec>summary{cursor:pointer;font-weight:600;padding:11px 2px;list-style:none}details.sec>summary::before{content:'▸ ';color:var(--ac)}details.sec[open]>summary::before{content:'▾ '}
+details.sec .bar{border:0;background:none;padding:6px 0;margin:2px 0}#aset{background:var(--ac);color:#fff;border-color:var(--ac)}
 video{width:100%;border-radius:8px;margin-top:6px}
 </style></head><body><div class="app">
 <h1>Plate Puppet <span class="mu" style="font:12px system-ui">mesh-warp cutout animator + director</span> <button id="inst" hidden>Install app</button></h1>
@@ -30,7 +32,8 @@ video{width:100%;border-radius:8px;margin-top:6px}
 <button id="delc">Delete</button><button id="flip">Flip</button>
 <label>Size<input type="range" id="sz" min="20" max="300" value="100"></label>
 <label>Rotate<input type="range" id="rt" min="-180" max="180" value="0"></label></div>
-<div class="bar" id="tools"><button data-t="cut" class="on">1 Cut out</button><button data-t="extract">2 Extract</button><button data-t="rig">3 Rig</button><button data-t="pose">4 Pose</button><button data-t="view">5 Preview</button><span class="mu" id="hint"></span></div>
+<details class="sec" open><summary>① Character &amp; motion (AI)</summary><div class="bar"><button id="aset">✨ Auto-setup character</button><button id="aicut">AI cutout (people)</button><label class="btn">🎬 Reference video<input type="file" id="refv" accept="video/*" hidden></label><button id="amo">Apply motion → selected</button><button id="amoall">→ all</button><label><input type="checkbox" id="mcon" checked>motion on</label></div><div class="mu" id="mst" style="padding:2px 2px 10px">Add a full-body character image, press Auto-setup, then load a reference video of someone moving.</div></details>
+<details class="sec" open><summary>② Fine-tune (cut · rig · pose)</summary><div class="bar" id="tools"><button data-t="cut" class="on">1 Cut out</button><button data-t="extract">2 Extract</button><button data-t="rig">3 Rig</button><button data-t="pose">4 Pose</button><button data-t="view">5 Preview</button><span class="mu" id="hint"></span></div>
 <div class="bar" data-for="cut"><select id="cmode"><option value="remove">Click: remove colour</option><option value="erase">Brush: erase</option><option value="restore">Brush: restore</option></select>
 <label>Tolerance<input type="range" id="tol" min="2" max="90" value="30"></label><label><input type="checkbox" id="glob">whole image</label>
 <label>Brush<input type="range" id="brush" min="6" max="60" value="20"></label><button id="bgauto">Auto-remove white</button><button id="undo">Undo</button></div>
@@ -40,11 +43,11 @@ video{width:100%;border-radius:8px;margin-top:6px}
 <div class="bar"><label>Preset<select id="pre"></select></label><label>Amount<input type="range" id="amt" min="0" max="250" value="100"></label>
 <label>BPM<input type="number" id="bpm" value="120" min="40" max="240"></label><label>Loop<select id="len"><option>4</option><option selected>8</option><option>16</option><option>32</option><option>64</option><option>128</option></select>beats</label></div>
 
-<div class="bar"><b>Director</b><button id="ash">+ Shot</button><button id="dsh">− Shot</button><button id="nbg">Next BG</button><select id="zm"><option value="1">Wide</option><option value="1.3">Punch-in</option><option value="1.7">Close</option></select><input id="cap" placeholder="caption" style="width:110px"><label><input type="checkbox" id="gl" checked>glide</label><button id="auto">✨ Auto-direct</button><button id="prep">Auto-prep all</button><button id="dbpm">Detect BPM</button><label><input type="checkbox" id="rx">music-reactive</label><button id="sv">Save</button><button id="lod">Load</button></div>
+</details><details class="sec"><summary>③ Director, shots &amp; polish</summary><div class="bar"><b>Director</b><button id="ash">+ Shot</button><button id="dsh">− Shot</button><button id="nbg">Next BG</button><select id="zm"><option value="1">Wide</option><option value="1.3">Punch-in</option><option value="1.7">Close</option></select><input id="cap" placeholder="caption" style="width:110px"><label><input type="checkbox" id="gl" checked>glide</label><button id="auto">✨ Auto-direct</button><button id="prep">Auto-prep all</button><button id="dbpm">Detect BPM</button><label><input type="checkbox" id="rx">music-reactive</label><button id="sv">Save</button><button id="lod">Load</button></div>
 <div class="bar"><b>Polish</b><button id="vis">Hide/Show char</button><button id="zup">Bring fwd</button><button id="zdn">Send back</button><label>Next cut<select id="tr"><option value="cut">Cut</option><option value="fade">Fade</option><option value="flash">Flash</option></select></label><label>Look<select id="look"><option>none</option><option>cinematic</option><option>warm</option><option>noir</option><option>dream</option></select></label><label><input type="checkbox" id="shd" checked>shadows</label><label><input type="checkbox" id="shk">beat shake</label><label>Export<select id="rs"><option value="1">540p</option><option value="2" selected>1080p</option></select></label></div>
-<div class="bar"><b>Audio / Project</b><label>Vol<input type="range" id="vol" min="0" max="150" value="100"></label><label><input type="checkbox" id="fd">fade in/out</label><label><input type="checkbox" id="lip">lip-sync (mouth pin)</label><button id="xp">Export project file</button><label class="btn">Import project<input type="file" id="ip" accept=".json" hidden></label></div>
+
 <div class="bar" id="sl" style="flex-direction:column;align-items:stretch;max-height:150px;overflow:auto"></div>
-<div id="out"></div></div></div>
+</details><details class="sec"><summary>④ Audio &amp; project</summary><div class="bar"><b>Audio / Project</b><label>Vol<input type="range" id="vol" min="0" max="150" value="100"></label><label><input type="checkbox" id="fd">fade in/out</label><label><input type="checkbox" id="lip">lip-sync (mouth pin)</label><button id="xp">Export project file</button><label class="btn">Import project<input type="file" id="ip" accept=".json" hidden></label></div></details><div id="out"></div></div></div>
 <script>
 window.AudioContext=window.AudioContext||window.webkitAudioContext;const $=s=>document.querySelector(s),cv=$('#cv'),cx=cv.getContext('2d'),W0=960,H0=540;
 let ps=[],si=-1,bg=null,bgs=[],shots=[],rv=1,lv=0,cam=null,curShot=null,tool='cut',T=0,playing=false,last=0,exp=null,drag=null,lastTap=[0,-1];
@@ -94,7 +97,7 @@ for(let j=0;j<p.rows;j++)for(let i=0;i<p.cols;i++){const a=j*n+i,b=a+1,c=a+n,d=c
 function evalKeys(p,kb){const k=p.keys;if(!k.length)return null;if(k.length===1)return k[0].d;const L=LB();let i=-1;k.forEach((q,j)=>{if(q.t<=kb)i=j});
 const A=i<0?k[k.length-1]:k[i],B=i<0||i===k.length-1?k[0]:k[i+1];let at=i<0?A.t-L:A.t,bt=i<0||i===k.length-1?B.t+L:B.t;if(i<0){at=A.t-L;bt=k[0].t}
 let u=(kb-at)/(bt-at||1);u=easeK(A.e,u);return A.d.map((v,n)=>[v[0]+(B.d[n][0]-v[0])*u,v[1]+(B.d[n][1]-v[1])*u])}
-const pose=p=>{const k=evalKeys(p,mod(beat(),LB()));return p.pins.map((q,i)=>k&&k[i]?k[i]:[0,0])};
+const pose=p=>{const m=mcEval(p);if(m)return m;const k=evalKeys(p,mod(beat(),LB()));return p.pins.map((q,i)=>k&&k[i]?k[i]:[0,0])};
 function offs(p,b,pre){const o=pose(p).map(a=>a.slice());let g={};
 if(pre&&p.pre!=='none'){const r=P[p.pre](b),m=p.amt*($('#rx').checked?rv:1);p.pins.forEach((q,i)=>{if(q.role==='anchor')return;const v=r[q.role]||(r.fr&&r.fr(i))||r.chest||[0,0];o[i][0]+=v[0]*m*p.h;o[i][1]+=v[1]*m*p.h});const h=r.g||{};
 g={y:(h.y||0)*m,r:(h.r||0)*m,sx:1+((h.sx||1)-1)*m,sy:1+((h.sy||1)-1)*m}}if(pre&&$('#lip').checked&&lv>0)p.pins.forEach((q,i)=>{if(q.role==='mouth')o[i][1]+=lv*.05*p.h});return{o,g}}
@@ -154,7 +157,7 @@ $('#delkey').onclick=()=>{const p=sel();if(p){const sb=mod(beat(),LB());p.keys=p
 $('#len').onchange=ticks;
 const aud=new Audio();let ac,dst,an,gn;
 $('#fa').onchange=async e=>{const f=e.target.files[0];if(f){aud.dataset.n=f.name;setAud(await du(f))}};function setAud(u){aud.onerror=()=>alert('Couldn’t play that audio file. Try MP3, WAV or M4A.');aud.src=u;aud.onloadedmetadata=()=>{if(!ac){ac=new AudioContext();const s=ac.createMediaElementSource(aud);dst=ac.createMediaStreamDestination();an=ac.createAnalyser();an.fftSize=256;gn=ac.createGain();gn.gain.value=$('#vol').value/100;s.connect(gn);gn.connect(an);gn.connect(ac.destination);gn.connect(dst)}$('#hint').textContent='Song: '+(aud.dataset.n||'loaded')+' · '+Math.round(aud.duration)+'s';ticks()}}
-const maxT=()=>aud.src&&aud.duration?aud.duration:LB()*60/bpm();
+const moDur=()=>ps.reduce((m,p)=>Math.max(m,p.mc?p.mc.length/p.mcFps:0),0),maxT=()=>aud.src&&aud.duration?aud.duration:Math.max(LB()*60/bpm(),moDur());
 function ticks(){const p=sel(),m=maxT()*bpm()/60;let h='';if(p)for(let r=0;r<m;r+=LB())p.keys.forEach(k=>{if(r+k.t<=m)h+=`<i style="left:${(r+k.t)/m*100}%"></i>`});h+=shots.map(q=>`<i class="s" style="left:${q.t/maxT()*100}%"></i>`).join('');$('#ticks').innerHTML=h;shotList()}
 $('#tl').oninput=e=>{T=e.target.value/1000*maxT();if(aud.src)aud.currentTime=T;dirApply()};
 $('#play').onclick=()=>{playing=!playing;$('#play').textContent=playing?'❚❚ Pause':'▶ Play';if(aud.src){ac&&ac.resume();if(playing){aud.currentTime=T;aud.play()}else aud.pause()}};
@@ -187,9 +190,9 @@ $('#dbpm').onclick=async()=>{if(!aud.src)return alert('Load a song first');const
 for(let i=0;i+hop<d.length;i+=hop){let q=0;for(let j=0;j<hop;j+=4)q+=d[i+j]*d[i+j];e.push(q)}const o=e.map((v,i)=>Math.max(0,v-(e[i-1]||0)));let best=0,bb=120;
 for(let B=70;B<=180;B+=.5){const lag=6000/B;let q=0;for(let i=0;i<o.length-1;i++){const k=i+lag,f=k|0;if(f+1<o.length)q+=o[i]*(o[f]*(1-(k-f))+o[f+1]*(k-f))}if(q>best){best=q;bb=B}}$('#bpm').value=Math.round(bb);ticks()};
 const idb=()=>new Promise((r,j)=>{const q=indexedDB.open('pp',1);q.onupgradeneeded=()=>q.result.createObjectStore('s');q.onsuccess=()=>r(q.result);q.onerror=j});
-$('#sv').onclick=async()=>{try{const D=window.lastD={bpm:bpm(),len:LB(),au:aud.src||null,shots,bi:bgs.indexOf(bg),bgs:bgs.map(i=>{const c=cvs(W0,H0);c.getContext('2d').drawImage(i,0,0,W0,H0);return c.toDataURL('image/jpeg',.85)}),ps:ps.map(p=>({o:p.orig.toDataURL(),c:p.cut.toDataURL(),x:p.x,y:p.y,s:p.s,s0:p.s0,rot:p.rot,fl:p.fl,pins:p.pins,keys:p.keys,pre:p.pre,amt:p.amt,hide:p.hide,z:p.z}))};(await idb()).transaction('s','readwrite').objectStore('s').put(D,'p');$('#hint').textContent='Saved in this browser (song not included)'}catch(e){$('#hint').textContent='Save failed'}};
+$('#sv').onclick=async()=>{try{const D=window.lastD={bpm:bpm(),len:LB(),au:aud.src||null,shots,bi:bgs.indexOf(bg),bgs:bgs.map(i=>{const c=cvs(W0,H0);c.getContext('2d').drawImage(i,0,0,W0,H0);return c.toDataURL('image/jpeg',.85)}),ps:ps.map(p=>({o:p.orig.toDataURL(),c:p.cut.toDataURL(),x:p.x,y:p.y,s:p.s,s0:p.s0,rot:p.rot,fl:p.fl,pins:p.pins,keys:p.keys,pre:p.pre,amt:p.amt,hide:p.hide,z:p.z,lm:p.lm,mc:p.mc,mcFps:p.mcFps}))};(await idb()).transaction('s','readwrite').objectStore('s').put(D,'p');$('#hint').textContent='Saved in this browser (song not included)'}catch(e){$('#hint').textContent='Save failed'}};
 $('#lod').onclick=async()=>{try{const db=await idb(),D=await new Promise(r=>{const q=db.transaction('s').objectStore('s').get('p');q.onsuccess=()=>r(q.result)});if(!D)return alert('No saved project');ps=[];bgs=[];for(const u of D.bgs)bgs.push(await ld(u));bg=bgs[D.bi]||bgs[0]||null;
-for(const d of D.ps){const o=await ld(d.o),oc=cvs(o.width,o.height);oc.getContext('2d').drawImage(o,0,0);const q=mk(oc,1),c=await ld(d.c),g=q.cut.getContext('2d');g.clearRect(0,0,q.w,q.h);g.drawImage(c,0,0);Object.assign(q,{x:d.x,y:d.y,s:d.s,s0:d.s0,rot:d.rot,fl:d.fl,pins:d.pins,keys:d.keys,pre:d.pre,amt:d.amt,hide:d.hide,z:d.z})}
+for(const d of D.ps){const o=await ld(d.o),oc=cvs(o.width,o.height);oc.getContext('2d').drawImage(o,0,0);const q=mk(oc,1),c=await ld(d.c),g=q.cut.getContext('2d');g.clearRect(0,0,q.w,q.h);g.drawImage(c,0,0);Object.assign(q,{x:d.x,y:d.y,s:d.s,s0:d.s0,rot:d.rot,fl:d.fl,pins:d.pins,keys:d.keys,pre:d.pre,amt:d.amt,hide:d.hide,z:d.z,lm:d.lm,mc:d.mc,mcFps:d.mcFps})}
 if(D.au)setAud(D.au);$('#bpm').value=D.bpm;$('#len').value=D.len;shots=D.shots||[];si=ps.length-1;chips();sync();ticks()}catch(e){alert('Load failed')}};
 const zo=()=>[...ps.keys()].sort((a,b)=>(ps[a].z||0)-(ps[b].z||0)||a-b);
 function shadow(p){if(!$('#shd').checked)return;const f=wp(p,p.w/2,p.h),r=p.w*p.s*.28;cx.save();cx.fillStyle='rgba(0,0,0,.25)';cx.beginPath();cx.ellipse(f[0],f[1]+3,r,r*.2,0,0,7);cx.fill();cx.restore()}
@@ -214,5 +217,46 @@ $('#ip').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const D=J
 if(matchMedia('(pointer:coarse)').matches)$('#rs').value='1';
 let dip;addEventListener('beforeinstallprompt',e=>{e.preventDefault();dip=e;$('#inst').hidden=false});$('#inst').onclick=async()=>{if(dip){dip.prompt();dip=null;$('#inst').hidden=true}};
 if('serviceWorker'in navigator&&location.protocol.startsWith('http'))addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+
+/* ===== Character AI: pose detection, auto-cutout, motion capture retargeting ===== */
+const MV='https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14',MODEL='https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task';
+let PL=null,REF=null;const st2=t=>{$('#mst').textContent=t};
+const mid=(a,i,j)=>({x:(a[i].x+a[j].x)/2,y:(a[i].y+a[j].y)/2}),P2=(a,j)=>j==='sh'?mid(a,11,12):j==='hp'?mid(a,23,24):j==='mouth'?mid(a,9,10):j==='nose'?a[0]:a[j];
+async function plm(){if(PL)return PL;st2('Loading AI model (needs internet the first time)…');const m=await import(MV+'/+esm'),v=await m.FilesetResolver.forVisionTasks(MV+'/wasm'),o=d=>({baseOptions:{modelAssetPath:MODEL,delegate:d},runningMode:'IMAGE',numPoses:1});
+try{PL=await m.PoseLandmarker.createFromOptions(v,o('GPU'))}catch(e){PL=await m.PoseLandmarker.createFromOptions(v,o('CPU'))}return PL}
+async function detect(c,mask){const p=await plm();await p.setOptions({outputSegmentationMasks:!!mask});return p.detect(c)}
+function flat(p){const c=cvs(p.w,p.h),g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,p.w,p.h);g.drawImage(p.cut,0,0);return c}
+function autoCut(p){const g=p.cut.getContext('2d'),w=p.w,h=p.h,N=w*h;g.clearRect(0,0,w,h);g.drawImage(p.orig,0,0);const id=g.getImageData(0,0,w,h),d=id.data,cnt={},bp=[];
+for(let x=0;x<w;x++)bp.push(x,(h-1)*w+x);for(let y=0;y<h;y++)bp.push(y*w,y*w+w-1);
+bp.forEach(i=>{const k=(d[i*4]>>3)+','+(d[i*4+1]>>3)+','+(d[i*4+2]>>3);cnt[k]=(cnt[k]||0)+1});
+const top=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a])[0].split(',').map(v=>v*8+4),dist=(i,r,q,b)=>ab(d[i*4]-r)+ab(d[i*4+1]-q)+ab(d[i*4+2]-b),nb=(i)=>{const x=i%w,y=(i/w)|0;return[x>0?i-1:-1,x<w-1?i+1:-1,y>0?i-w:-1,y<h-1?i+w:-1]},bgm=new Uint8Array(N),st=[];
+bp.forEach(i=>{if(!bgm[i]&&dist(i,...top)<90){bgm[i]=1;st.push(i)}});
+while(st.length){const i=st.pop(),r=d[i*4],q=d[i*4+1],b=d[i*4+2];for(const j of nb(i)){if(j<0||bgm[j])continue;if(dist(j,r,q,b)<36&&dist(j,...top)<200){bgm[j]=1;st.push(j)}}}
+const lab=new Int32Array(N),sz=[0];let nl=0;for(let s0=0;s0<N;s0++){if(bgm[s0]||lab[s0])continue;nl++;lab[s0]=nl;let n=0;const q=[s0];while(q.length){const i=q.pop();n++;for(const j of nb(i))if(j>=0&&!bgm[j]&&!lab[j]){lab[j]=nl;q.push(j)}}sz.push(n)}
+const mx=sz.reduce((a,b)=>Math.max(a,b),0),keep=sz.map(n=>n>=mx*.02);for(let i=0;i<N;i++)if(bgm[i]||!keep[lab[i]])d[i*4+3]=0;
+const A=new Uint8Array(N);for(let i=0;i<N;i++)A[i]=d[i*4+3];for(let i=0;i<N;i++)if(A[i]&&nb(i).some(j=>j>=0&&!A[j]))d[i*4+3]=130;g.putImageData(id,0,0)}
+function pinsFromLm(p,lm){lm.forEach(q=>{q.x=Math.max(0,Math.min(p.w,q.x));q.y=Math.max(0,Math.min(p.h,q.y))});p.lm=lm;
+p.pins=['nose','mouth','sh','hp',13,14,15,16,25,26,27,28].map(j=>{const q=P2(lm,j);return{x:q.x,y:q.y,j,role:j==='nose'?'head':j==='mouth'?'mouth':j==='sh'?'chest':j==='hp'?'hip':[15,16].includes(j)?'handL':[27,28].includes(j)?'footL':'free'}});
+const fx=(a,b,n)=>{const A=p.pins.find(q=>q.j===a),B=p.pins.find(q=>q.j===b);(A.x<=B.x?[A,B]:[B,A]).forEach((q,i)=>q.role=n+(i?'R':'L'))};fx(15,16,'hand');fx(27,28,'foot');p.keys=[];p.mc=null}
+async function aiRig(p){const r=await detect(flat(p),false),L=r.landmarks&&r.landmarks[0];if(!L)return false;const lm=L.map(q=>({x:q.x*p.w,y:q.y*p.h,v:q.visibility}));if([11,12,23,24].some(i=>lm[i].v<.3))return false;pinsFromLm(p,lm);return true}
+async function aiCut(p){const r=await detect(flat(p),true),m=r.segmentationMasks&&r.segmentationMasks[0];if(!m)return false;const f=m.getAsFloat32Array();if(f.length!==p.w*p.h){m.close();return false}
+const g=p.cut.getContext('2d'),id=g.getImageData(0,0,p.w,p.h),d=id.data;for(let i=0;i<f.length;i++)d[i*4+3]=Math.min(d[i*4+3],Math.round(Math.max(0,Math.min(1,(f[i]-.3)/.4))*255));g.putImageData(id,0,0);m.close();return true}
+async function analyze(file){const pose=await plm();await pose.setOptions({outputSegmentationMasks:false});const v=document.createElement('video');v.muted=true;v.playsInline=true;v.src=URL.createObjectURL(file);await new Promise((r,j)=>{v.onloadedmetadata=r;v.onerror=j});
+const fps=15,n=Math.floor(Math.min(v.duration,600)*fps),c=cvs(Math.min(640,v.videoWidth),1);c.height=Math.round(c.width*v.videoHeight/v.videoWidth);const g=c.getContext('2d'),ar=c.width/c.height;let R=[];
+for(let k=0;k<n;k++){const sk=new Promise(r=>v.onseeked=r);v.currentTime=(k+.5)/fps;await sk;g.drawImage(v,0,0,c.width,c.height);const L=pose.detect(c).landmarks[0];R.push(L?L.map(q=>({x:q.x*ar,y:q.y})):null);if(k%5===0)st2('Analyzing reference '+Math.round(k/n*100)+'%')}
+URL.revokeObjectURL(v.src);const f0=R.find(q=>q);if(!f0)throw new Error('no person found in the video');let last=f0;R=R.map(q=>last=q||last);
+const S=R.map((_,k)=>R[0].map((_,i)=>{let x=0,y=0,m=0;for(let d=-2;d<=2;d++){const q=R[k+d];if(q){x+=q[i].x;y+=q[i].y;m++}}return{x:x/m,y:y/m}})),Ls=S.map(a=>Math.hypot(P2(a,'sh').x-P2(a,'hp').x,P2(a,'sh').y-P2(a,'hp').y)).sort((a,b)=>a-b);REF={S,fps,a0:S[0],Lr:Ls[Ls.length>>1]}}
+function applyMo(p){const lc=p.lm,sh=P2(lc,'sh'),hp=P2(lc,'hp'),s=Math.hypot(sh.x-hp.x,sh.y-hp.y)/REF.Lr,a0=REF.a0,len=(i,j)=>Math.hypot(lc[j].x-lc[i].x,lc[j].y-lc[i].y);
+p.mc=REF.S.map(a=>{const tg={},d=j=>{const A=P2(a,j),B=P2(a0,j);return[(A.x-B.x)*s,(A.y-B.y)*s]},u=(i,j)=>{const x=a[j].x-a[i].x,y=a[j].y-a[i].y,l=Math.hypot(x,y)||1;return[x/l,y/l]};
+['nose','mouth','sh','hp'].forEach(j=>{const r=P2(lc,j),e=d(j);tg[j]=[r.x+e[0],r.y+e[1]]});
+[[11,13,15],[12,14,16],[23,25,27],[24,26,28]].forEach(([b,e,w])=>{const S0=P2(lc,b),dd=d(b),u1=u(b,e),u2=u(e,w),E=[S0.x+dd[0]+u1[0]*len(b,e),S0.y+dd[1]+u1[1]*len(b,e)];tg[e]=E;tg[w]=[E[0]+u2[0]*len(e,w),E[1]+u2[1]*len(e,w)]});
+const root=d('hp');return p.pins.map(q=>{const t=tg[q.j];return t?[t[0]-q.x,t[1]-q.y]:root})});p.mcFps=REF.fps;p.pre='none'}
+function mcEval(p){if(!p.mc||!p.mc.length||!$('#mcon').checked)return null;const f=Math.max(0,Math.min(p.mc.length-1,T*p.mcFps)),i=f|0,u=f-i,A=p.mc[i],B=p.mc[Math.min(i+1,p.mc.length-1)];if(A.length!==p.pins.length)return null;return A.map((v,n)=>[v[0]+(B[n][0]-v[0])*u,v[1]+(B[n][1]-v[1])*u])}
+const hist=p=>{p.hist.push(p.cut.getContext('2d').getImageData(0,0,p.w,p.h));if(p.hist.length>12)p.hist.shift()};
+$('#aset').onclick=async()=>{const p=sel();if(!p)return st2('Add a character image first');try{hist(p);autoCut(p);st2('Detecting body…');if(await aiRig(p)){p.pre='none';st2('Rigged from detected pose (12 joints). Load a reference video next.')}else{autoRig(p,'human');st2('No full body detected, so a template rig was used. A clear full-body, front-facing image works best.')}ticks()}catch(e){st2('Could not load the AI model: '+(e.message||e)+' (needs internet the first time)')}};
+$('#aicut').onclick=async()=>{const p=sel();if(!p)return st2('Add a character image first');try{hist(p);st2('Cutting out…');st2(await aiCut(p)?'AI cutout done.':'No person found; try Auto-setup or the manual cut tools.')}catch(e){st2('AI model failed: '+(e.message||e))}};
+$('#refv').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{await analyze(f);st2('Reference ready: '+(REF.S.length/REF.fps).toFixed(1)+'s. Press “Apply motion”.')}catch(x){st2('Reference analysis failed: '+(x.message||x))}e.target.value=''};
+const goMo=ps_=>{if(!REF)return st2('Load a reference video first');let n=0;ps_.forEach(p=>{if(p.lm){applyMo(p);n++}});if(!n)return st2('Run Auto-setup on the character first');$('#mcon').checked=true;T=0;st2('Motion applied to '+n+' character'+(n>1?'s':'')+'. Press Play.');ticks()};
+$('#amo').onclick=()=>goMo(sel()?[sel()]:[]);$('#amoall').onclick=()=>goMo(ps);
 setTool('cut');chips();requestAnimationFrame(frame);
 </script></body></html>
