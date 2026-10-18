@@ -50,10 +50,10 @@ video{width:100%;border-radius:8px;margin-top:6px}
 <div class="bar" data-for="rig"><select id="role"><option>head</option><option>chest</option><option>hip</option><option>handL</option><option>handR</option><option>footL</option><option>footR</option><option>free</option><option>anchor</option><option>mouth</option></select>
 <select id="tpl"><option value="human">Humanoid</option><option value="creature">Creature</option><option value="object">Object / prop</option></select><button id="rig">Auto-rig from silhouette</button><button id="clrpins">Clear pins</button></div>
 <div class="bar" data-for="pose"><button id="delkey">Delete key here</button><button id="clrkeys">Clear keys</button><label>Ease<select id="ez"><option value="smooth">Smooth</option><option value="linear">Linear</option><option value="in">Ease in</option><option value="out">Ease out</option><option value="bounce">Overshoot</option><option value="hold">Hold</option></select></label><label><input type="checkbox" id="onion" checked>onion skin</label><span class="mu">Drag a pin to pose it; a key is set at the playhead.</span></div>
-<h3>Animation preset</h3><div class="bar"><label>Preset<select id="pre"></select></label><label>Amount<input type="range" id="amt" min="0" max="250" value="100"></label></div></section>
+<h3>Animation preset</h3><div class="bar"><label>Preset<select id="pre"></select></label><label><input type="checkbox" id="phys" checked>natural physics</label><label>Amount<input type="range" id="amt" min="0" max="250" value="100"></label></div></section>
 <section class="pane" data-pane="dir"><h3>Backgrounds</h3><div class="bar"><button id="bga">Add all (16)</button><button id="bgf" class="btn">Add from file…</button><input type="file" id="bgfi" accept="image/*" hidden><span class="mu">Tap a plate to add it and use it. Then + Shot locks it in at the playhead; Next BG cycles.</span></div><div id="bgg" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px;margin:6px 0"></div><h3>Add a shot at the playhead</h3><div class="bar"><button id="ash">+ Shot</button><button id="dsh">− Shot</button><button id="nbg">Next BG</button><select id="zm"><option value="1">Wide</option><option value="1.3">Punch-in</option><option value="1.7">Close</option></select><input id="cap" placeholder="caption" style="width:110px"><label><input type="checkbox" id="gl" checked>glide</label></div>
 <h3>Automatic</h3><div class="bar"><button id="auto">✨ Auto-direct song</button><button id="prep">Auto-prep all</button></div>
-<h3>Look &amp; transitions</h3><div class="bar"><label>Next cut<select id="tr"><option value="cut">Cut</option><option value="fade">Fade</option><option value="flash">Flash</option></select></label><label>Look<select id="look"><option>none</option><option>cinematic</option><option>warm</option><option>noir</option><option>dream</option></select></label><label><input type="checkbox" id="shd" checked>shadows</label><label><input type="checkbox" id="shk">beat shake</label></div>
+<h3>Look &amp; transitions</h3><div class="bar"><label>Next cut<select id="tr"><option value="cut">Cut</option><option value="fade">Fade</option><option value="flash">Flash</option></select></label><label>Look<select id="look"><option>none</option><option>cinematic</option><option>warm</option><option>noir</option><option>dream</option></select></label><label><input type="checkbox" id="shd" checked>shadows</label><label><input type="checkbox" id="shk">beat shake</label><label><input type="checkbox" id="bzm">beat zoom</label></div>
 <h3>Shot list</h3><div class="bar" id="sl" style="flex-direction:column;align-items:stretch;max-height:220px;overflow:auto"></div></section>
 <section class="pane" data-pane="aud"><h3>Song &amp; timing</h3><div class="bar"><label>Vol<input type="range" id="vol" min="0" max="150" value="100"></label><label><input type="checkbox" id="fd">fade in/out</label><button id="dbpm">Detect BPM</button><label>BPM<input type="number" id="bpm" value="120" min="40" max="240"></label><label>Loop<select id="len"><option>4</option><option selected>8</option><option>16</option><option>32</option><option>64</option><option>128</option></select>beats</label></div>
 <h3>Reactions</h3><div class="bar"><label><input type="checkbox" id="rx">music-reactive</label><label><input type="checkbox" id="lip">lip-sync (mouth pin)</label></div>
@@ -110,6 +110,25 @@ const g=Object.assign({},r.g);g.sy=(g.sy||1)+.005*br;g.r=(g.r||0)+.004*d;r.g=g;r
 FEM.forEach(k=>{P[k]=nat(P[k])});
 const CALM=['soft sway','hip sway','arm flow','tease','hair flip','blow kiss','flirt'],HYPE=['beat pop','body roll','groove','power strut','pose hit','camera point','hype lift','head whip','shimmy','runway','curtsy'];
 const pk=ph=>{const L=(ph<.15||(ph>.5&&ph<.6))?CALM:HYPE;return L[Math.floor(Math.random()*L.length)]};
+/* ===== Motion engine: spring dynamics (scrub-safe) + per-bar variation ===== */
+const PHY=document.getElementById('phys');
+const SPR={head:[13,.5],chest:[17,.65],hip:[19,.7],handL:[9,.38],handR:[9,.38],footL:[26,.85],footR:[26,.85],mouth:[28,.8]},PN=26,PDT=.06;
+const spw=(w,z,d)=>{const wd=w*Math.sqrt(1-z*z),a=[];let s=0;for(let k=0;k<PN;k++){const t=(k+.5)*PDT+(d||0),v=Math.exp(-z*w*t)*Math.sin(wd*t);a.push(v);s+=v}return a.map(v=>v/s)};
+const SW={};for(const k in SPR)SW[k]=spw(SPR[k][0],SPR[k][1]);
+const SWF=[0,.04,.08,.12].map(d=>spw(5.5,.3,d));
+const rh=n=>{const x=Math.sin(n*127.1+311.7)*43758.5453;return x-Math.floor(x)};
+const VAR=f=>b=>{const r=f(b),n=Math.floor(b/4),u=mod(b,4)/4,a=rh(n-1),c=rh(n),k=1+.16*((a+(c-a)*sm(u,0,.25))-.5)*2;
+for(const q in r){const v=r[q];if(q==='g'||!Array.isArray(v))continue;v[0]*=k;v[1]*=k}
+if(r.g){const g=r.g;if(g.y)g.y*=k;if(g.r)g.r*=k;if(g.sx)g.sx=1+(g.sx-1)*k;if(g.sy)g.sy=1+(g.sy-1)*k}return r};
+const roleOf=(s,role)=>s[role]||(role==='mouth'?(s.head||s.chest):(role==='footL'||role==='footR')?null:s.chest)||[0,0];
+const PHYS=f=>b=>{if(!PHY.checked)return f(b);const S0=[];for(let k=0;k<PN;k++)S0.push(f(b+.07-(k+.5)*PDT));
+const o={};for(const role in SPR){const w=SW[role];let x=0,y=0;for(let k=0;k<PN;k++){const v=roleOf(S0[k],role);x+=w[k]*v[0];y+=w[k]*v[1]}o[role]=[x,y]}
+const w=SW.chest;let gy=0,gr=0,sx=0,sy=0;for(let k=0;k<PN;k++){const g=S0[k].g||{};gy+=w[k]*(g.y||0);gr+=w[k]*(g.r||0);sx+=w[k]*(g.sx||1);sy+=w[k]*(g.sy||1)}
+o.g={y:gy,r:gr,sx,sy};
+o.fr=i=>{const w=SWF[i&3];let x=0,y=0;for(let k=0;k<PN;k++){const v=S0[k].head||S0[k].chest||[0,0];x+=w[k]*v[0];y+=w[k]*v[1]}return[x*1.25+.006*S(b*PI*1.3+i*1.7),y*1.1+.004*C(b*PI*1.1+i*2.1)]};
+return o};
+['idle','bounce','sway','wave','headbang','walk','jump','dance'].forEach(k=>{P[k]=nat(P[k])});
+Object.keys(P).filter(k=>!['none','wobble','pulse','talk'].includes(k)).forEach(k=>{P[k]=PHYS(VAR(P[k]))});
 $('#pre').innerHTML=Object.keys(P).map(k=>`<option>${k}</option>`).join('');
 const cvs=(w,h)=>Object.assign(document.createElement('canvas'),{width:w,height:h});
 const du=f=>new Promise(r=>{const a=new FileReader();a.onload=()=>r(a.result);a.readAsDataURL(f)});
@@ -146,7 +165,8 @@ const pose=p=>{const m=mcEval(p);if(m)return m;const k=evalKeys(p,mod(beat(),LB(
 function offs(p,b,pre){const o=pose(p).map(a=>a.slice());let g={};
 if(pre&&p.pre!=='none'){const r=P[p.pre](b),m=p.amt*($('#rx').checked?rv:1);p.pins.forEach((q,i)=>{if(q.role==='anchor')return;const v=r[q.role]||(r.fr&&r.fr(i))||r.chest||[0,0];o[i][0]+=v[0]*m*p.h;o[i][1]+=v[1]*m*p.h});const h=r.g||{};
 g={y:(h.y||0)*m,r:(h.r||0)*m,sx:1+((h.sx||1)-1)*m,sy:1+((h.sy||1)-1)*m}}if(pre&&$('#lip').checked&&lv>0)p.pins.forEach((q,i)=>{if(q.role==='mouth')o[i][1]+=lv*.05*p.h});return{o,g}}
-function render(){cx.setTransform(cv.width/W0,0,0,cv.width/W0,0,0);if(playing)dirApply();cx.fillStyle='#fff';cx.fillRect(0,0,W0,H0);cx.save();if(playing&&cam){cx.translate(W0/2,H0/2);cx.scale(cam[2],cam[2]);cx.translate(-cam[0],-cam[1])}if(playing&&$('#shk').checked){const k=Math.max(0,1-mod(beat(),1)*6)*rv*4;cx.translate((Math.random()-.5)*k,(Math.random()-.5)*k)}if(bg)cx.drawImage(bg,0,0,W0,H0);const b=beat(),live=playing||tool==='view';
+function render(){cx.setTransform(cv.width/W0,0,0,cv.width/W0,0,0);if(playing)dirApply();cx.fillStyle='#fff';cx.fillRect(0,0,W0,H0);cx.save();if(playing&&cam){cx.translate(W0/2,H0/2);cx.scale(cam[2],cam[2]);cx.translate(-cam[0],-cam[1])}if(playing&&$('#shk').checked){const k=Math.max(0,1-mod(beat(),1)*6)*rv*4;cx.translate((Math.random()-.5)*k,(Math.random()-.5)*k)}if(playing&&$('#bzm').checked){const bt=beat(),k=1+Math.max(0,1-mod(bt,1)*3.2)*(mod(Math.floor(bt),4)===0?1.8:1)*.016*(.6+.4*rv);cx.translate(W0/2,H0/2);cx.scale(k,k);cx.translate(-W0/2,-H0/2)}
+if(bg)cx.drawImage(bg,0,0,W0,H0);const b=beat(),live=playing||tool==='view';
 zo().forEach(i=>{const p=ps[i];if(p.hide&&live)return;shadow(p);if(p.is3d){const r=offs(p,b,live);draw3(p,r.g)}else if(i===si&&!live&&['cut','extract','rig'].includes(tool))drawP(p,null,null);else{const r=offs(p,b,live);drawP(p,r.o,r.g)}});onion();cx.restore();post();capDraw();overlay()}
 function overlay(){if(exp||(playing&&cam))return;const p=sel();if(!p)return;cx.save();cx.strokeStyle='#e5604f';cx.lineWidth=1.5;cx.setLineDash([6,4]);cx.beginPath();
 (p.is3d?[[p.w*.25,p.h*.14],[p.w*.75,p.h*.14],[p.w*.75,p.h*.97],[p.w*.25,p.h*.97]]:[[0,0],[p.w,0],[p.w,p.h],[0,p.h]]).forEach(([x,y],i)=>{const[a,b]=wp(p,x,y);i?cx.lineTo(a,b):cx.moveTo(a,b)});cx.closePath();cx.stroke();cx.setLineDash([]);
