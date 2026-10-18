@@ -90,7 +90,7 @@ video{max-width:100%;border-radius:8px}#out{margin-top:6px}#out video{width:100%
 <h3>Start</h3><div class="card"><div class="big">
 <button id="smp" class="pri">🧸<span>Try a sample</span><small>instant rigged puppet</small></button>
 <label class="btn" style="flex-direction:column;justify-content:center">🖼<span style="font-weight:600;color:var(--tx)">My art → 3D</span><small>transparent PNG works best</small><input type="file" id="fi" accept="image/*" hidden></label>
-<label class="btn" style="flex-direction:column;justify-content:center">📦<span style="font-weight:600;color:var(--tx)">Load 3D model</span><small>.glb or .gltf</small><input type="file" id="fm" accept=".glb,.gltf,model/gltf-binary" hidden></label></div>
+<label class="btn" style="flex-direction:column;justify-content:center">📦<span style="font-weight:600;color:var(--tx)">Load 3D model</span><small>animated .glb / .gltf</small><input type="file" id="fm" accept=".glb,.gltf,model/gltf-binary" hidden></label></div>
 <div class="row"><button id="fs">Use character from 2D studio</button><span id="chs" class="row"></span></div>
 <p class="n">Image → 3D builds a textured figure from one picture and rigs it automatically. Full-body, arms slightly out, facing the camera works best.</p></div>
 <details><summary>Build options (shape, depth, back &amp; side views)</summary>
@@ -106,7 +106,7 @@ video{max-width:100%;border-radius:8px}#out{margin-top:6px}#out video{width:100%
 </div>
 
 <div class="tabp" data-tab="motion">
-<h3>Motion library · tap to add at the playhead</h3><div class="card"><div class="chips" id="mcat"></div><div class="grid" id="mlib"></div>
+<h3>Motion library · tap to add at the playhead</h3><div class="card"><div class="row"><label class="btn pri">🦴 Import animated 3D character<input type="file" id="ia" accept=".fbx,.glb,.gltf,model/gltf-binary" multiple hidden></label></div><p class="n"><b>Native rig mode:</b> imports the model and plays its own skeleton/animation clips directly in 3D, without rebuilding the skeleton from guessed landmarks. Best choice: a skinned animated GLB with clips embedded. FBX is supported too. Each imported animated character is added to the cast.</p><details><summary>Legacy motion conversion (experimental)</summary><p class="n">Motion-only BVH or animation files can be converted to the studio puppet landmarks, but this cannot preserve the original skinning and may distort unusual rigs.</p><label class="btn">Import experimental motion-only file<input type="file" id="ia_legacy" accept=".fbx,.glb,.gltf,.bvh,model/gltf-binary" multiple hidden></label></details></div><div class="card"><div class="chips" id="mcat"></div><div class="grid" id="mlib"></div>
 <p class="n">Every motion loops. Drag the clip's right edge on the timeline to make it longer. Clips blend into each other automatically.</p></div>
 <h3>Copy a video</h3><div class="card"><div class="row"><label class="btn pri">🎬 Load reference video<input type="file" id="rv" accept="video/*" hidden></label><button id="rvg" title="Re-run on the last video with the options below">Re-run</button></div>
 <details><summary>Tracking options</summary><div class="row"><label class="f"><span>Quality</span><select id="rq"><option value="lite">Fast</option><option value="full" selected>Good</option><option value="heavy">Best (slow, big download)</option></select></label><label class="f"><span>Sample rate</span><select id="rf"><option value="15">15 fps</option><option value="20">20 fps</option><option value="30" selected>30 fps</option></select></label></div>
@@ -297,17 +297,18 @@ const ctlSync=()=>{};
 /* ===== actors ===== */
 let GROUND=true;
 const NAMES=['Mira','Juno','Pip','Otto','Lux','Bram','Nova','Kit','Ziggy','Fern','Rex','Ola'];
-function newActor(){const g=new THREE.Group(),n=++NN;sc.add(g);A={G:g,M:null,B:null,drv:null,roots:[],clips:[],voices:[],path:[],x:ACT.length?Math.max(...ACT.map(q=>q.x))+1.3:0,z:0,yaw:0,sc:1,hue:(n*67+10)%360,name:NAMES[(n-1)%NAMES.length],face:null,decals:[],dyn:new Map(),phase:n*1.7,seed:n,morphs:null,talk:{g:.55,h:.55},faceSrc:null};ACT.push(A)}
+function newActor(){const g=new THREE.Group(),n=++NN;sc.add(g);A={G:g,M:null,B:null,drv:null,roots:[],clips:[],voices:[],path:[],x:ACT.length?Math.max(...ACT.map(q=>q.x))+1.3:0,z:0,yaw:0,sc:1,hue:(n*67+10)%360,name:NAMES[(n-1)%NAMES.length],face:null,decals:[],dyn:new Map(),phase:n*1.7,seed:n,morphs:null,talk:{g:.55,h:.55},faceSrc:null,nativeClips:[],nativeMixer:null,nativeActions:new Map(),nativeMode:false};ACT.push(A)}
 const useActor=a=>{A=a;M=a.M;B=a.B;drv=a.drv;roots=a.roots},place=()=>{if(A)A.G.position.set(A.x,0,A.z)},shade=o=>o.traverse(c=>{if(c.isMesh&&!c.userData.outline)c.castShadow=true});
 function setActorScale(a,s){const keep=A;useActor(a);a.sc=s;if(a.B&&a.drv){reset()}a.G.scale.setScalar(s);a.G.updateMatrixWorld(true);if(a.B&&a.drv)setup();if(keep)useActor(keep)}
 function findMorphs(root){const mp={jaw:[],smile:[],blinkL:[],blinkR:[],pucker:[],wide:[]};let any=false;root.traverse(o=>{const d=o.isMesh&&o.morphTargetDictionary;if(!d)return;for(const k in d){const n=k.toLowerCase(),e={m:o,i:d[k]};
 if(/jawopen|mouthopen|viseme_aa|^aa$|^a$/.test(n)){mp.jaw.push(e);any=true}else if(/mouthsmile|^smile/.test(n)){mp.smile.push(e)}else if(/blink.*l|eyeblinkleft|blink_l/.test(n)){mp.blinkL.push(e);any=true}else if(/blink.*r|eyeblinkright|blink_r/.test(n)){mp.blinkR.push(e);any=true}else if(/^blink$|eyesclosed/.test(n)){mp.blinkL.push(e);mp.blinkR.push(e);any=true}
 else if(/viseme_o|mouthfunnel|mouthpucker|^oh$|^ou$/.test(n)){mp.pucker.push(e)}else if(/viseme_e|viseme_i|mouthstretch|^ee$/.test(n)){mp.wide.push(e)}}});return any?mp:null}
+function wrapImportedRoot(root){const w=new THREE.Group();w.name=(root.name||'ImportedCharacter')+'_FitRoot';w.add(root);return w}
 function setModel(o,msg){if(!A||$('#na').checked)newActor();else{clearFace(A);A.G.position.set(0,0,0);if(M)A.G.remove(M)}A.yaw=0;
 A.G.scale.setScalar(1);A.sc=1;M=o;A.M=o;fit(M);A.G.add(M);let sk=false;M.traverse(c=>{if(c.isSkinnedMesh){sk=true;c.frustumCulled=false}});A.morphs=findMorphs(M);
 if(sk){B=mapBones(M);A.B=B;if(B){setup();st(msg||'Rigged model detected ('+Object.keys(B).length+' joints mapped). Add a motion from the Motion tab.')}else st('This model has a skeleton I don’t recognise as a humanoid. Use the unrigged version and press Auto-rig.')}else{B=null;drv=null;A.B=null;A.drv=null;st('Static mesh loaded. Press Auto-rig (works best on T-pose or A-pose).')}
 applyLookActor(A);place();refUI()}
-$('#fm').onchange=async e=>{const f=e.target.files[0];if(!f)return;const u=URL.createObjectURL(f);try{st('Loading model…');setModel((await new GLTFLoader().loadAsync(u)).scene);afterBuild()}catch(x){st('Could not read that model: '+(x.message||x))}URL.revokeObjectURL(u);e.target.value=''};
+$('#fm').onchange=async e=>{const f=e.target.files[0];if(!f)return;const u=URL.createObjectURL(f);try{st('Loading model…');const gltf=await new GLTFLoader().loadAsync(u);setModel(wrapImportedRoot(gltf.scene));if(gltf.animations&&gltf.animations.length)setNativeAnimations(A,gltf.animations,0);afterBuild();if(gltf.animations&&gltf.animations.length)st('Loaded original rig with '+gltf.animations.length+' native animation clip'+(gltf.animations.length===1?'':'s')+'. Use the Motion tab timeline to arrange them.')}catch(x){st('Could not read that model: '+(x.message||x))}URL.revokeObjectURL(u);e.target.value=''};
 $('#ar').onclick=()=>{st('Rigging… (large meshes take a few seconds)');setTimeout(()=>{try{autoRig();afterBuild()}catch(x){st('Auto-rig failed: '+(x.message||x))}},30)};
 /* ===== built-in sample character (clay puppet), exact joints supplied so the rig is perfect ===== */
 function makeSample(idx=0){const g=new THREE.Group(),PAL=[[0xd9534f,0x2f4b7c,0x4a2c1e],[0x3f9d8a,0x5a3d7a,0x1c1a20],[0xe8b53a,0x35507a,0xb8481f],[0x6a7fd6,0x3d3d44,0xe8d6a0]],P=PAL[idx%PAL.length];
@@ -663,6 +664,19 @@ b.quaternion.copy(tgt.slerp(s.q,clamp(amt*1.3)))}}
 const _fq=new Q4(),_pq=new Q4(),_fp=new V3(),_ya=new Q4(),_up=new V3(0,1,0);
 function footFlat(a,hdgRad){if(!ANIM.ground)return;[['LF','LL'],['RF','RL']].forEach(([f,l])=>{const b=a.B[f],p=a.B[l];if(!b||!p||!b.userData.rwq)return;b.getWorldPosition(_fp);const h=_fp.y-b.userData.rwp.y,pl=1-sst(h/.1);if(pl<.02)return;
 b.getWorldQuaternion(_fq);_ya.setFromAxisAngle(_up,hdgRad);const flat=_ya.clone().multiply(b.userData.rwq);_fq.slerp(flat,.9*pl);p.getWorldQuaternion(_pq);b.quaternion.copy(_pq.invert().multiply(_fq));b.updateMatrixWorld(true)})}
+/* ===== native skeletal animation: preserve the imported model's actual rig and clips ===== */
+function setNativeAnimations(a,clips,start=0){if(!a||!clips||!clips.length)return 0;
+  a.nativeClips=[...clips];a.nativeMode=true;a.nativeMixer=new THREE.AnimationMixer(a.M);a.nativeActions=new Map();
+  a.clips=[];let t=start;
+  clips.forEach((clip,i)=>{const d=Math.max(.05,clip.duration||1),name=(clip.name||('Animation '+(i+1))).slice(0,18),c={mc:null,nativeClip:clip,nativeIndex:i,start:snapT0(t),in:0,len:d,dur:d,speed:1,loop:false,mirror:false,amp:1,bi:.12,bo:.12,name};a.clips.push(c);a.nativeActions.set(c,a.nativeMixer.clipAction(clip));t+=d;});
+  a._lt=null;touch();return clips.length}
+function evalNativeActor(a,Tn){const pa=pathAt(a,Tn),hd=(pa.h+(a.yaw||0))*PI/180;a.G.position.set(pa.x,0,pa.z);a.G.rotation.y=hd;
+  const mixer=a.nativeMixer;if(!mixer||!a.nativeActions)return;
+  mixer.stopAllAction();
+  const active=[];for(const c of a.clips){if(!c.nativeClip)continue;const lt=Tn-c.start;if(lt<0||lt>c.dur)continue;let w=(c.bi>0?sst(lt/c.bi):1)*(c.bo>0?sst((c.dur-lt)/c.bo):1);if(w<.001)continue;
+    const act=a.nativeActions.get(c)||mixer.clipAction(c.nativeClip);a.nativeActions.set(c,act);act.reset();act.enabled=true;act.paused=false;act.clampWhenFinished=true;act.setLoop(c.loop?THREE.LoopRepeat:THREE.LoopOnce,c.loop?Infinity:1);const d=Math.max(.001,c.nativeClip.duration||c.len||1);let tm=c.in+lt*c.speed;tm=c.loop?((tm%d)+d)%d:Math.max(0,Math.min(d,tm));act.time=tm;act.setEffectiveTimeScale(0);act.setEffectiveWeight(w);act.play();active.push(act)}
+  mixer.update(0);a.M.updateMatrixWorld(true);
+}
 /* ===== evaluate one actor ===== */
 function evalActor(a,Tn){const tq=animT(Tn),pa=pathAt(a,ANIM.fps&&ANIM.fps<8?tq:Tn),dt=a._lt==null?0:Tn-a._lt;a._lt=Tn;a.G.position.set(pa.x,0,pa.z);
 const hd=pa.h*PI/180;let LI=sampleMC(IDLEMC,tq*.9+a.phase,true),L=LI,rt={x:0,y:0},dom=IDLEMC,domW=0;
@@ -677,7 +691,7 @@ useActor(a);applyPose(L,{x:rt.x,y:rt.y,cx:Math.cos(hd),sz:-Math.sin(hd)});
 if(a.B&&B)footFlat(a,hd);dynStep(a,dt);
 if(ANIM.fps&&ANIM.fps<=6&&a.B&&a.B.Hips){const f=Math.floor(tq*ANIM.fps),r=rng(f*131+a.seed*977+7);const j=new Q4().setFromEuler(new THREE.Euler((r()-.5)*.03,(r()-.5)*.03,(r()-.5)*.035));a.B.Hips.quaternion.premultiply(j);a.B.Hips.position.x+=(r()-.5)*.012;a.B.Hips.position.y+=(r()-.5)*.008}
 faceStep(a,tq,mv);M.updateMatrixWorld(true)}
-function evalScene(){const keep=A;GROUND=ANIM.ground;ACT.forEach(a=>{if(!a.B||!a.drv)return;evalActor(a,T)});if(keep)useActor(keep);if(SH.length&&!free)applyCam()}
+function evalScene(){const keep=A;GROUND=ANIM.ground;ACT.forEach(a=>{if(a.nativeMode&&a.nativeMixer){evalNativeActor(a,T);return}if(!a.B||!a.drv)return;evalActor(a,T)});if(keep)useActor(keep);if(SH.length&&!free)applyCam()}
 /* ===== timeline length ===== */
 const dur=()=>{let d=0;ACT.forEach(a=>{a.clips.forEach(c=>d=Math.max(d,clipEnd(c)));a.voices.forEach(v=>d=Math.max(d,v.start+v.buf.duration));a.path.forEach(k=>d=Math.max(d,k.t+.5))});SH.forEach(k=>d=Math.max(d,k.t+1));return Math.max(d,AB?AB.duration:0,5)};
 /* ===== camera ===== */
@@ -865,7 +879,7 @@ $('#wk').onclick=()=>{if(!A||!A.B)return st('Add and rig a character first.');if
 const ROWH=26,RULH=22;let dg=null;
 function rowsModel(){const r=[{label:'Camera',kind:'cam'}];ACT.forEach((a,ai)=>{r.push({label:a.name,kind:'act',a:ai});a.voices.forEach((v,vi)=>r.push({label:'🎤 '+v.name,kind:'voice',a:ai,v:vi,sub:true}))});return r}
 function songPeaks(){if(!AB)return null;if(AB._pk)return AB._pk;const n=Math.ceil(AB.duration*100),d=AB.getChannelData(0),h=Math.floor(AB.sampleRate/100),p=new Float32Array(n);for(let i=0;i<n;i++){let m=0;const o=i*h;for(let k=0;k<h;k+=4){const v=Math.abs(d[o+k]||0);if(v>m)m=v}p[i]=m}return AB._pk=p}
-const clipColor=c=>{if(!c.mc.proc)return'#7a5cc7';const i=MOTCAT.indexOf(motInfo(c.mc.kind).c);return`hsl(${[210,150,320,32,8][i]||200},52%,${i===2?48:42}%)`};
+const clipColor=c=>{if(c.nativeClip)return'#258b91';if(!c.mc||!c.mc.proc)return'#7a5cc7';const i=MOTCAT.indexOf(motInfo(c.mc.kind).c);return`hsl(${[210,150,320,32,8][i]||200},52%,${i===2?48:42}%)`};
 function drawTL(){const tin=$('#tin');if(!tin)return;const D=dur(),W=Math.ceil((D+4)*pps),rows=rowsModel();tin.style.width=W+'px';tin.style.height=(RULH+rows.length*ROWH)+'px';
 let h=`<div id="rul" style="width:${W}px">`;const stp=pps>=40?1:5;for(let s=0;s<=D+4;s+=stp)h+=`<span class="tk" style="left:${s*pps}px;width:${stp*pps}px">${fmt(s)}</span>`;
 if(AB){const bt=60/bpmNow();if(bt*pps>7)for(let b=B0,n=0;b<=D+4&&n<3000;b+=bt,n++)h+=`<i class="bt" style="left:${b*pps}px"></i>`}h+='</div>';
@@ -999,9 +1013,9 @@ else if(k===' '){e.preventDefault();$('#play').click()}else if((k==='delete'||k=
 function bakeActor(a,fps=30){const keep=A;useActor(a);const D=dur(),n=Math.max(2,Math.ceil(D*fps)),bs=[];const seen=new Set();a.M.traverse(o=>{if(o.isBone&&!seen.has(o.name)){seen.add(o.name);bs.push(o)}});const times=Array.from({length:n},(_,i)=>i/fps),vals=bs.map(()=>[]),hp=[],hips=a.B.Hips;a._lt=null;
 for(let i=0;i<n;i++){evalActor(a,times[i]);bs.forEach((b,j)=>vals[j].push(b.quaternion.x,b.quaternion.y,b.quaternion.z,b.quaternion.w));hp.push(hips.position.x,hips.position.y,hips.position.z)}
 const tr=bs.map((b,j)=>new THREE.QuaternionKeyframeTrack(b.name+'.quaternion',times,vals[j]));tr.push(new THREE.VectorKeyframeTrack(hips.name+'.position',times,hp));a._lt=null;if(keep)useActor(keep);return new THREE.AnimationClip('Plate Puppet',n/fps,tr)}
-function glbBytes(a,anims){return new Promise((res,rej)=>{const hid=[];a.M.traverse(o=>{if((o.userData.decal||o.userData.outline)&&o.visible){o.visible=false;hid.push(o)}});const keep=A;useActor(a);reset();a.M.updateMatrixWorld(true);
+function glbBytes(a,anims){return new Promise((res,rej)=>{const hid=[];a.M.traverse(o=>{if((o.userData.decal||o.userData.outline)&&o.visible){o.visible=false;hid.push(o)}});const keep=A;useActor(a);if(!a.nativeMode)reset();a.M.updateMatrixWorld(true);
 new GLTFExporter().parse(a.M,r=>{hid.forEach(o=>o.visible=true);if(keep)useActor(keep);res(r)},e=>{hid.forEach(o=>o.visible=true);if(keep)useActor(keep);rej(e)},{binary:true,animations:anims||[],onlyVisible:true})})}
-$('#xg').onclick=async()=>{if(!A||!A.B)return;const was=playing;stop();try{st('Baking the animation…');await sleep0();const clip=A.clips.length?bakeActor(A):null,r=await glbBytes(A,clip?[clip]:[]);dl(URL.createObjectURL(new Blob([r],{type:'model/gltf-binary'})),'plate-puppet-rigged.glb');st('Saved a GLB with skeleton'+(clip?' and the whole timeline’s animation':'')+'. Import it into Godot or Blender.')}catch(x){st('GLB export failed: '+(x.message||x))}if(was)$('#play').click()};
+$('#xg').onclick=async()=>{if(!A||!A.M)return;const was=playing;stop();try{st('Preparing GLB export…');await sleep0();let clips=[];if(A.nativeMode)clips=A.nativeClips||[];else{const clip=A.clips.length?bakeActor(A):null;if(clip)clips=[clip]}const r=await glbBytes(A,clips);dl(URL.createObjectURL(new Blob([r],{type:'model/gltf-binary'})),'plate-puppet-rigged.glb');st(A.nativeMode?'Saved the model with its original native animation clips. Timeline clip timing is not baked into this native export.':'Saved a GLB with skeleton'+(clips.length?' and baked timeline animation':'')+'. Import it into Godot or Blender.')}catch(x){st('GLB export failed: '+(x.message||x))}if(was)$('#play').click()};
 /* ----- quick export (real time WebM) ----- */
 $('#xv').onclick=()=>{if(rec||!ACT.some(a=>a.clips.length))return;const mt=['video/webm;codecs=vp9','video/webm','video/mp4'].find(t=>MediaRecorder.isTypeSupported(t)),ch=[],bps=+$('#xq').value||12e6;rec=new MediaRecorder(new MediaStream([...cv.captureStream(30).getTracks(),...ADST.stream.getAudioTracks()]),{mimeType:mt,videoBitsPerSecond:bps});rec.ondataavailable=e=>ch.push(e.data);
 rec.onstop=()=>{const u=URL.createObjectURL(new Blob(ch,{type:mt}));$('#out').innerHTML=`<video controls playsinline src="${u}"></video><a class="btn" download="plate-puppet-3d.${mt.includes('mp4')?'mp4':'webm'}" href="${u}">Download video</a>`;rec=null;st('Recorded. Use the MP4 export for the best quality.')};T=0;ac.resume();playing=true;aPlay();$('#play').textContent='❚❚ Pause';rec.start();st('Recording in real time…')};
@@ -1034,17 +1048,17 @@ const o={v:2,bpm:bpmNow(),b0:B0,sh:SH,aspect:$('#ar2').value,pps,look:{LOOK:{...
 pr:PR.map(p=>({k:p.k,x:p.x,z:p.z,s:p.s,r:p.r,c:'#'+p.m.material.color.getHexString(),img:p.img})),act:[]};
 for(const a of ACT){const S=faceS(a),q={n:a.name,x:a.x,z:a.z,yaw:a.yaw,sc:a.sc,talk:a.talk,me:a.mouthE||1,seed:a.seed,hue:a.hue,fs:{...S,mine:S.mine.map(im=>{const c=document.createElement('canvas');c.width=im.width;c.height=im.height;c.getContext('2d').drawImage(im,0,0);return c.toDataURL('image/png')})},
 face:a.face?{m:a.face.mouth.toArray(),l:a.face.eL.toArray(),r:a.face.eR.toArray(),mw:a.face.mw,ew:a.face.ew,R:a.face.R,off:a.face.off,q:a.face.q.toArray()}:null,
-c:a.clips.map(c=>({m:id(c.mc),s:c.start,i:c.in,l:c.len,d:c.dur,sp:c.speed,lp:c.loop,mi:c.mirror,am:c.amp,bi:c.bi,bo:c.bo,n:c.name})),path:a.path,v:a.voices.map(v=>({s:v.start,g:v.gain,mu:v.mute,n:v.name,w:wavB64(v.buf)}))};
-if(withChars&&a.M){q.glb=ab2b64(await glbBytes(a))}o.act.push(q);await sleep0()}
+c:a.clips.map(c=>c.nativeClip?({native:true,ni:c.nativeIndex,s:c.start,i:c.in,l:c.len,d:c.dur,sp:c.speed,lp:c.loop,mi:false,am:1,bi:c.bi,bo:c.bo,n:c.name}):({m:id(c.mc),s:c.start,i:c.in,l:c.len,d:c.dur,sp:c.speed,lp:c.loop,mi:c.mirror,am:c.amp,bi:c.bi,bo:c.bo,n:c.name})),path:a.path,v:a.voices.map(v=>({s:v.start,g:v.gain,mu:v.mute,n:v.name,w:wavB64(v.buf)}))};
+if(withChars&&a.M){q.glb=ab2b64(await glbBytes(a,a.nativeMode?a.nativeClips:[]))}o.act.push(q);await sleep0()}
 o.mc=U.map(packMC);dl(URL.createObjectURL(new Blob([JSON.stringify(o)],{type:'application/json'})),'plate-puppet-project.pp3d');st('Project saved'+(withChars?' with characters':'')+'. The song isn’t included, so add it again after opening.')}catch(x){st('Could not save: '+(x.message||x))}}
 $('#sv').onclick=saveProject;$('#sv3').onclick=saveProject;
 async function loadProject(file){try{st('Opening…');const o=JSON.parse(await file.text()),C=o.mc.map(unpackMC);stop();HIST.length=0;REDO.length=0;SEL=null;
 if(o.v>=2&&o.act.some(q=>q.glb)){ACT.slice().forEach(a=>{clearFace(a);sc.remove(a.G)});ACT.length=0;A=M=B=drv=null;roots=[];NN=0}
 const keepNA=$('#na').checked;let bad=0;
-for(let i=0;i<o.act.length;i++){const q=o.act[i];let a=ACT[i];if(q.glb){st('Loading '+(q.n||'character')+'…');try{const g=await new Promise((res,rej)=>new GLTFLoader().parse(b642ab(q.glb),'',res,rej));$('#na').checked=true;setModel(g.scene,'Loaded.');a=A}catch(x){bad++;continue}}if(!a)continue;
+for(let i=0;i<o.act.length;i++){const q=o.act[i];let a=ACT[i];if(q.glb){st('Loading '+(q.n||'character')+'…');try{const g=await new Promise((res,rej)=>new GLTFLoader().parse(b642ab(q.glb),'',res,rej));$('#na').checked=true;setModel(wrapImportedRoot(g.scene),'Loaded.');a=A;if(g.animations&&g.animations.length){a.nativeClips=[...g.animations];a.nativeMixer=new THREE.AnimationMixer(a.M);a.nativeActions=new Map();a.nativeMode=true}}catch(x){bad++;continue}}if(!a)continue;
 useActor(a);a.name=q.n;a.x=q.x;a.z=q.z;a.yaw=q.yaw||0;if(q.sc&&q.sc!==1)setActorScale(a,q.sc);if(!a.B)a.M.rotation.y=a.yaw*PI/180;if(q.talk)a.talk=q.talk;a.mouthE=q.me||1;if(q.seed)a.seed=q.seed;if(q.hue!=null)a.hue=q.hue;place();
 if(q.fs){const S=Object.assign(FACE_DEF(),q.fs);S.mine=[];for(const u of(q.fs.mine||[])){try{S.mine.push(await ldImg(u))}catch(e){}}a.faceS=S}
-a.clips=(q.c||[]).map(c=>q.v===undefined&&c.s===undefined?null:newClip(C[c.m],c.s,c.n,{in:c.i||0,len:c.l||mcDur(C[c.m]),dur:c.d||mcDur(C[c.m]),speed:c.sp||1,loop:c.lp==null?!!C[c.m].loop:c.lp,mirror:!!c.mi,amp:c.am==null?1:c.am,bi:c.bi==null?.3:c.bi,bo:c.bo==null?.3:c.bo})).filter(Boolean);a.path=q.path||[];a._seg=null;a.voices=[];
+a.clips=(q.c||[]).map(c=>{if(c.native&&a.nativeClips&&a.nativeClips[c.ni]){const clip=a.nativeClips[c.ni],d=Math.max(.05,clip.duration||c.l||1),o={mc:null,nativeClip:clip,nativeIndex:c.ni,start:c.s||0,in:c.i||0,len:c.l||d,dur:c.d||d,speed:c.sp||1,loop:!!c.lp,mirror:false,amp:1,bi:c.bi==null?.12:c.bi,bo:c.bo==null?.12:c.bo,name:c.n||clip.name};a.nativeActions.set(o,a.nativeMixer.clipAction(clip));return o}return q.v===undefined&&c.s===undefined?null:newClip(C[c.m],c.s,c.n,{in:c.i||0,len:c.l||mcDur(C[c.m]),dur:c.d||mcDur(C[c.m]),speed:c.sp||1,loop:c.lp==null?!!C[c.m].loop:c.lp,mirror:!!c.mi,amp:c.am==null?1:c.am,bi:c.bi==null?.3:c.bi,bo:c.bo==null?.3:c.bo})}).filter(Boolean);a.path=q.path||[];a._seg=null;a.voices=[];
 for(const v of(q.v||[])){try{const b=await ac.decodeAudioData(b642ab(v.w));const vo={buf:b,start:v.s,gain:v.g,mute:v.mu,name:v.n,an:null};a.voices.push(vo);analyzeVoice(b).then(an=>vo.an=an)}catch(e){}}
 if(q.face&&a.B&&a.B.Head){const f=q.face;a.face={mouth:new V3().fromArray(f.m),eL:new V3().fromArray(f.l),eR:new V3().fromArray(f.r),mw:f.mw,ew:f.ew,R:f.R,off:f.off,q:new Q4().fromArray(f.q)};buildFaceMeshes(a)}}
 $('#na').checked=keepNA;
@@ -1055,6 +1069,51 @@ $('#bp').value=o.bpm||120;B0=o.b0||0;if(o.aspect){$('#ar2').value=o.aspect;const
 if(o.look){const l=o.look;Object.assign(LOOK,l.LOOK);Object.assign(LT,l.LT);Object.assign(FXV,FXDEF(),l.FXV);Object.assign(ANIM,l.ANIM);ACT.forEach(a=>a.dyn.clear());if(l.floor){$('#gs').value=l.floor;$('#gc').value=l.fc;setFloor(l.floor,false)}if(l.bc)$('#bc').value=l.bc;if(l.sky){$('#bgp').value=l.sky;setSky(l.sky)}$('#fgd').value=l.fog||0;setFog();if(l.mt){[TWK,ZT,ZL]=l.mt;$('#mt').value=TWK*100;$('#mz').value=ZT*100;$('#ml').value=ZL*100}$('#lp').checked=l.lp!==false;$('#bz').checked=!!l.bz;$('#bk').checked=!!l.bk;key.castShadow=l.shadows!==false;setLight(LT);syncLookUI();applyLook()}
 touch();if(ACT.length&&!A)useActor(ACT[0]);T=0;free=false;refUI();st(bad?'Opened, but '+bad+' character'+(bad>1?'s':'')+' could not be restored.':'Project opened.'+(o.act.length>ACT.length?' (The file has '+o.act.length+' characters; only '+ACT.length+' are in the scene. Save with “include characters” to keep them all.)':''))}catch(x){st('Could not open that project: '+(x.message||x))}}
 $('#pl').onchange=e=>{const f=e.target.files[0];if(f)loadProject(f);e.target.value=''};$('#pl2').onchange=e=>{const f=e.target.files[0];if(f)loadProject(f);e.target.value=''};
+/* ===== import mocap / animation files (.fbx Mixamo, .glb, .bvh) -> the engine's clip format ===== */
+async function loadAnimFile(file){const ext=(file.name.split('.').pop()||'').toLowerCase(),buf=await file.arrayBuffer();
+if(ext==='fbx'){const{FBXLoader}=await import('three/addons/loaders/FBXLoader.js');const g=new FBXLoader().parse(buf,'');return{root:g,clips:g.animations}}
+if(ext==='glb'||ext==='gltf'){const g=await new GLTFLoader().parseAsync(buf,'');return{root:g.scene,clips:g.animations}}
+if(ext==='bvh'){const{BVHLoader}=await import('three/addons/loaders/BVHLoader.js');const r=new BVHLoader().parse(new TextDecoder().decode(buf));const g=new THREE.Group();g.add(r.skeleton.bones[0]);return{root:g,clips:[r.clip]}}
+throw new Error('Use an .fbx, .glb or .bvh animation file.')}
+function clipToMC(root,clip){root.updateMatrixWorld(true);const Bn=mapBones(root);
+const need=['Hips','Head','LUA','RUA','LFA','RFA','LH','RH','LUL','RUL','LL','RL','LF','RF'];if(!Bn||need.some(k=>!Bn[k]))throw new Error('I couldn’t find a standard humanoid skeleton in that file (needs hips, head, arms and legs).');
+const mixer=new THREE.AnimationMixer(root);mixer.clipAction(clip).play();
+const fps=30,dur=Math.min(clip.duration||1,60),n=Math.max(3,Math.round(dur*fps)+1),P=b=>b.getWorldPosition(new V3()),kids=b=>b.children.filter(c=>c.isBone),Yv=new V3(0,1,0);
+const raw=[];
+for(let k=0;k<n;k++){mixer.setTime(Math.min(dur,k/fps));root.updateMatrixWorld(true);
+const p={};need.forEach(r=>p[r]=P(Bn[r]));const sh=p.LUA.clone().add(p.RUA).multiplyScalar(.5),up=p.Head.clone().sub(sh).normalize(),l=p.LUA.clone().sub(p.RUA);l.y=0;l.normalize();
+const hk=kids(Bn.Head).map(P),hl=hk.length?hk.reduce((a,b)=>a.add(b),new V3()).divideScalar(hk.length).sub(p.Head).length():p.Head.distanceTo(sh)*.9,hc=p.Head.clone().addScaledVector(up,hl*.5);
+const fin=(h,fa)=>{const ks=kids(Bn[h]).map(P);if(ks.length)return ks.reduce((a,b)=>a.add(b),new V3()).divideScalar(ks.length);const d=p[h].clone().sub(p[fa]);return p[h].clone().add(d.normalize().multiplyScalar(p[h].distanceTo(p[fa])*.4))};
+p.fL=fin('LH','LFA');p.fR=fin('RH','RFA');p.hc=hc;p.l=l;p.up=up;p.hl=hl;p.tL=kids(Bn.LF).length?P(kids(Bn.LF)[0]):null;p.tR=kids(Bn.RF).length?P(kids(Bn.RF)[0]):null;raw.push(p)}
+/* face +z, left on +x, scale to a 1.75 m person */
+const l0=raw[0].l,a0=Math.atan2(l0.z,l0.x),H0=raw[0].hc.y-Math.min(raw[0].LF.y,raw[0].RF.y),kS=H0>1e-6?1.6/H0:1,R=v=>ry(v.clone().multiplyScalar(kS),a0);
+const F=[],hip=[];let floor=1e9;
+raw.forEach(p=>{const o={};for(const k in p)if(p[k]&&p[k].isVector3&&k!=='l'&&k!=='up')o[k]=R(p[k]);o.up=p.up.clone();o.l=p.l.clone();o.hl=p.hl*kS;floor=Math.min(floor,o.LF.y,o.RF.y);hip.push(o)});
+hip.forEach(o=>{const L=Array.from({length:33},()=>new V3()),up=ry(o.up,a0).normalize(),lw=ry(o.l,a0),fw=new V3().crossVectors(lw,Yv).normalize(),S=(i,v)=>L[i].copy(v),mp=(a,b)=>a.clone().add(b).multiplyScalar(.5),hc=o.hc,ear=.075;
+S(11,o.LUA);S(12,o.RUA);S(13,o.LFA);S(14,o.RFA);S(15,o.LH);S(16,o.RH);[17,19,21].forEach(i=>S(i,o.fL));[18,20,22].forEach(i=>S(i,o.fR));
+S(23,o.LUL);S(24,o.RUL);S(25,o.LL);S(26,o.RL);S(27,o.LF);S(28,o.RF);
+const toe=(t,a)=>t||a.clone().addScaledVector(fw,.12).setY(a.y*.35),tl=toe(o.tL,o.LF),tr=toe(o.tR,o.RF);S(31,tl);S(32,tr);S(29,o.LF.clone().addScaledVector(fw,-.05).setY(o.LF.y*.5));S(30,o.RF.clone().addScaledVector(fw,-.05).setY(o.RF.y*.5));
+S(7,hc.clone().addScaledVector(lw,ear));S(8,hc.clone().addScaledVector(lw,-ear));S(0,hc.clone().addScaledVector(fw,.09));[1,2,3].forEach(i=>S(i,hc.clone().addScaledVector(fw,.085).addScaledVector(lw,.03).addScaledVector(up,.02)));[4,5,6].forEach(i=>S(i,hc.clone().addScaledVector(fw,.085).addScaledVector(lw,-.03).addScaledVector(up,.02)));
+S(9,hc.clone().addScaledVector(fw,.08).addScaledVector(up,-.045).addScaledVector(lw,.025));S(10,hc.clone().addScaledVector(fw,.08).addScaledVector(up,-.045).addScaledVector(lw,-.025));
+const hp=mp(o.LUL,o.RUL);o._h=hp.clone();F.push(L)});
+/* in place: remove the hips' ground travel, keep height; measure forward speed separately */
+const hs=hip.map(o=>o._h),hx0=hs[0].x,hz0=hs[0].z;F.forEach((L,k)=>{const h=hs[k];L.forEach(v=>{v.x-=h.x;v.z-=h.z;v.y-=floor})});
+const m=Math.min(F.length,n),sp=hs[m-1].clone().sub(hs[0]),spd=Math.hypot(sp.x,sp.z)/Math.max(.1,(m-1)/fps),travel=spd>.25?clamp(spd,0,4):0;
+const MR=smoothRoot(hs.map(h=>[h.x-hx0,h.y]),fps),tlv=[];F.forEach(L=>tlv.push(mkMid(L,11,12).distanceTo(mkMid(L,23,24))));tlv.sort((a,b)=>a-b);
+const J=[11,12,13,14,15,16,25,26,27,28],d0=J.reduce((s,j)=>s+F[0][j].distanceTo(F[F.length-1][j]),0)/J.length,loop=d0<.07&&F.length>fps*.5;if(loop&&F.length>4){F.pop();if(MR)MR.pop()}
+return{fps,F,root:MR,conf:null,tl:tlv[tlv.length>>1]||.5,hm:null,loop,travel,quality:{frames:F.length,found:1,groups:{arms:1,legs:1,head:1,torso:1},crop:false,dur:F.length/fps,fps,warn:[]},src:{from:0,fps}}}
+const mkMid=(L,a,b)=>L[a].clone().add(L[b]).multiplyScalar(.5);
+async function importNativeCharacter(file,start){const ext=(file.name.split('.').pop()||'').toLowerCase(),buf=await file.arrayBuffer();let root,clips=[];
+ if(ext==='fbx'){const{FBXLoader}=await import('three/addons/loaders/FBXLoader.js');root=FBXLoader.prototype.parse.call(new FBXLoader(),buf,'');clips=root.animations||[]}
+ else if(ext==='glb'||ext==='gltf'){const g=await new GLTFLoader().parseAsync(buf,'');root=g.scene;clips=g.animations||[]}
+ else throw new Error('Native character import supports animated .glb/.gltf or .fbx files.');
+ let skinned=false,meshCount=0;root.traverse(o=>{if(o.isSkinnedMesh)skinned=true;if(o.isMesh)meshCount++});if(!meshCount)throw new Error('This file has no renderable mesh. Choose a character model, not a motion-only skeleton.');if(!clips.length)throw new Error('No animation clips were found. Export the character with its animations included.');
+ $('#na').checked=true;setModel(wrapImportedRoot(root),'Imported native animated character.');const a=A;a.name=file.name.replace(/\.[^.]+$/,'').slice(0,18)||a.name;setNativeAnimations(a,clips,start);afterBuild();return{a,clips};}
+async function importAnim(files){let ok=0,start=snapT0(T);for(const file of files){try{st('Importing native rig from “'+file.name+'”…');await sleep0();const r=await importNativeCharacter(file,start);ok++;start=clipEnd(r.a.clips[r.a.clips.length-1]);SEL={t:'clip',a:ACT.indexOf(r.a),i:0};st('Imported '+r.a.name+' with '+r.clips.length+' native clip'+(r.clips.length===1?'':'s')+'. Original skeleton and skinning preserved.')}catch(x){console.error(x);st('Could not import '+file.name+': '+(x.message||x))}}if(ok){touch();refUI();tab('motion')}}
+$('#ia').onchange=e=>{const f=[...e.target.files];if(f.length)importAnim(f);e.target.value=''};
+async function importLegacyAnim(files){if(!A||!A.B)return st('Add and rig a character first. This legacy converter is experimental.');let start=snapT0(T),ok=0;for(const file of files){try{st('Converting experimental motion “'+file.name+'”…');await sleep0();const{root,clips}=await loadAnimFile(file);if(!clips||!clips.length)throw new Error('No animation clip found.');const mc=clipToMC(root,clips.reduce((x,y)=>y.duration>x.duration?y:x));if(!ok)histPush();const c=newClip(mc,start,file.name.replace(/\.[^.]+$/,'').slice(0,18)||'Mocap',{loop:!!mc.loop,dur:mcDur(mc)});A.clips.push(c);touch();start=clipEnd(c);ok++;SEL={t:'clip',a:ACT.indexOf(A),i:A.clips.length-1};st('Added experimental converted motion. If it distorts, use an animated character file with its own rig instead.')}catch(x){console.error(x);st('Could not convert '+file.name+': '+(x.message||x))}}if(ok)refUI()}
+$('#ia_legacy').onchange=e=>{const f=[...e.target.files];if(f.length)importLegacyAnim(f);e.target.value=''};
+
 /* ----- render loop + startup ----- */
 function renderFrame(){const bz=$('#bz').checked,bk=$('#bk').checked;let pu=0;if((bz||bk)&&T>=B0){const bt=60/bpmNow();pu=Math.exp(-5*(((T-B0)/bt)%1))}const f=cam.fov,p=cam.position.clone(),on=pu>.01;if(on){if(bz)cam.fov=f*(1-.06*pu);if(bk)cam.position.add(new V3(Math.sin(T*90),Math.cos(T*77),0).multiplyScalar(.025*pu));cam.updateProjectionMatrix()}drawFrame();if(on){cam.fov=f;cam.position.copy(p);cam.updateProjectionMatrix()}}
 let lastTs=0,lastT=-1,lastSec=-1;
