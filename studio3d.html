@@ -18,8 +18,17 @@ h3{font:700 11px system-ui;letter-spacing:.09em;text-transform:uppercase;color:v
 .bar,.card{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0;padding:8px;background:var(--pn);border:1px solid var(--ln);border-radius:10px}
 .card{flex-direction:column;align-items:stretch;gap:8px}.card .row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 p.n{margin:2px 2px;color:var(--mu);line-height:1.45;font-size:13px}p.n b{color:var(--tx)}
-.work{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;align-items:start}
-@media(min-width:1050px){.work{grid-template-columns:minmax(0,1.55fr) minmax(380px,1fr)}.stage{position:sticky;top:8px;max-height:calc(100vh - 16px);overflow:auto;scrollbar-width:thin}}
+.work{display:block}.stage{display:contents}
+.pin{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);padding:2px 0 4px;margin:0 -10px;padding-left:10px;padding-right:10px;box-shadow:0 6px 10px -8px rgba(0,0,0,.5)}
+.pin .vp{border-radius:8px}.pin .bar.transport{margin:4px 0 0;padding:4px 6px}
+#mst{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;padding:3px 2px 0;min-height:0;font-size:12px;line-height:1.3;cursor:pointer}#mst.x{-webkit-line-clamp:unset}
+#tlc{margin:4px 0}#tsc{max-height:132px}#insp{padding:6px}
+header.top{padding:2px 2px 4px}.brand .mu{display:none}.brand{font-size:17px}header.top button,header.top .btn{padding:4px 8px}
+#coach{padding:7px 10px}#coach .steps{margin:0 0 5px}#coach .d{margin:0 0 5px;font-size:12px}#coach .t{font-size:14px;margin:0}
+.tabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:4px 0}.tabs::-webkit-scrollbar{display:none}.tabs button{flex:0 0 auto;padding:6px 10px}
+h3{margin:8px 2px 4px}.card{padding:6px;gap:6px;margin:4px 0}.bar{padding:6px;margin:4px 0}.big>*{min-height:58px;padding:8px 6px}p.n{font-size:12px}
+@media(min-width:1050px),(orientation:landscape) and (min-width:700px){.work{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(380px,1fr);gap:12px;align-items:start}.stage{display:block;position:sticky;top:8px;max-height:calc(100vh - 16px);overflow:auto;scrollbar-width:thin}
+.pin{position:static;margin:0;padding:0;box-shadow:none;background:none}.pin .bar.transport{margin:6px 0 0;padding:8px}#mst{font-size:13px;-webkit-line-clamp:unset;min-height:2.8em;cursor:default}#tsc{max-height:300px}.tabs{flex-wrap:wrap}.tabs button{flex:1 1 auto}}
 .vp{position:relative;display:flex;justify-content:center;background:#0b0a09;border:1px solid var(--ln);border-radius:10px;overflow:hidden}
 canvas#cv{display:block;touch-action:none;background:#1b1a14}
 #hint{position:absolute;left:8px;right:8px;top:8px;display:none;padding:8px 12px;background:rgba(20,18,14,.88);color:#fff;border-radius:8px;font-size:13px;text-align:center;pointer-events:none;border:1px solid var(--ac)}
@@ -67,11 +76,11 @@ video{max-width:100%;border-radius:8px}#out{margin-top:6px}#out video{width:100%
 <button id="un" title="Undo (Ctrl+Z)">↶</button><button id="re" title="Redo (Ctrl+Shift+Z)">↷</button><button id="hp">? How it works</button><button id="sv">💾 Save</button><label class="btn">📂 Open<input type="file" id="pl" accept=".json,.pp3d" hidden></label><a class="btn" href="index.html">← 2D studio</a><button id="th" title="Light / dark">◐</button></header>
 <main class="work">
 <section class="stage">
-<div class="vp" id="vp"><canvas id="cv"></canvas><div id="safe"><i></i></div><div id="hint"></div><div id="pip"><video id="rpv" muted playsinline></video><canvas id="rpc"></canvas></div><div id="vpt"><button id="sfb" title="Show safe frame">▢</button><button id="shot" title="Save a still image">📷</button></div></div>
+<div class="pin"><div class="vp" id="vp"><canvas id="cv"></canvas><div id="safe"><i></i></div><div id="hint"></div><div id="pip"><video id="rpv" muted playsinline></video><canvas id="rpc"></canvas></div><div id="vpt"><button id="sfb" title="Show safe frame">▢</button><button id="shot" title="Save a still image">📷</button></div></div>
 <div class="bar transport"><button id="play" class="pri">▶ Play</button><span id="tc">0:00 / 0:00</span><input type="range" id="tl" min="0" max="1000" value="0"><label><input type="checkbox" id="lp" checked>loop</label></div>
+<div id="mst" onclick="this.classList.toggle('x')">Pick a way to start below.</div></div>
 <div id="tlc"><div id="tlab"></div><div id="tsc"><div id="tin"></div></div></div>
 <div id="insp" class="card" style="display:none"></div>
-<div id="mst">Pick a way to start on the right.</div>
 </section>
 <aside class="side">
 <div id="coach"></div>
@@ -277,7 +286,7 @@ function drawFrame(){if(post){const u=post.fx.uniforms,f=FXV;u.uTime.value=perfo
 post.bloom.strength=f.bloom*1.4;post.bloom.enabled=f.bloom>.01;R.toneMapping=f.tone?THREE.ACESFilmicToneMapping:THREE.NoToneMapping;post.comp.render()}else R.render(sc,cam)}
 /* ===== sizing / format ===== */
 let ASPECT=16/9,EXPORTING=false;
-function rs(){if(EXPORTING)return;const par=$('#vp').parentElement,W=Math.max(220,par.clientWidth-2),hmax=Math.max(260,innerHeight*.64);let w=W,h=W/ASPECT;if(h>hmax){h=hmax;w=h*ASPECT}
+function rs(){if(EXPORTING)return;const par=$('#vp').parentElement,W=Math.max(220,par.clientWidth-2),wide=matchMedia('(min-width:1050px),(orientation:landscape) and (min-width:700px)').matches,hmax=wide?Math.max(260,innerHeight*.64):Math.max(170,innerHeight*.34);let w=W,h=W/ASPECT;if(h>hmax){h=hmax;w=h*ASPECT}
 cv.style.width=Math.round(w)+'px';cv.style.height=Math.round(h)+'px';const pr=Math.min(devicePixelRatio,2);R.setPixelRatio(pr);R.setSize(Math.round(w),Math.round(h),false);cam.aspect=ASPECT;cam.updateProjectionMatrix();if(post)post.comp.setSize(Math.round(w),Math.round(h));$('#safe').style.width=Math.round(w)+'px';$('#safe').style.left='50%';$('#safe').style.transform='translateX(-50%)'}
 addEventListener('resize',rs);
 cam.position.set(0,1.1,4.2);ctl.target.set(0,.95,0);ctl.update();
