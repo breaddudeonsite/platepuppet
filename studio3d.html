@@ -38,6 +38,7 @@ h3{font:700 11px system-ui;letter-spacing:.08em;text-transform:uppercase;color:v
 <h3>3 · Rig</h3><div class="bar"><button id="ar" disabled>Auto-rig humanoid</button><button id="fl" disabled>Flip facing 180°</button><button id="rp" disabled>Clear motion</button></div>
 <h3>4 · Motion · adds a clip at the playhead on the selected character</h3><div class="bar"><label class="btn">🎬 Load reference video<input type="file" id="rv" accept="video/*" hidden></label></div>
 <div class="bar"><select id="bm"><option>idle</option><option>walk</option><option>run</option><option>wave</option><option>dance</option><option>jump</option><option>sway</option><option>strut</option><option>roll</option><option>hype</option><option>headbang</option></select><button id="bb">+ Built-in motion at playhead</button></div>
+<div class="bar"><label>Torso twist<input type="range" id="mt" min="0" max="100" value="40"></label><label>Torso depth<input type="range" id="mz" min="0" max="100" value="35"></label><label>Limb depth<input type="range" id="ml" min="0" max="100" value="100"></label><span class="mu" style="flex-basis:100%">Video depth is noisy. These tame it live: lower twist and torso depth if she twists or looks flat, raise them for more body turn.</span></div>
 <div id="mst">Load a model to begin.</div>
 <h3>5 · Music</h3><div class="bar"><label class="btn">🎵 Song<input type="file" id="au" accept="audio/*,.mp3,.wav,.m4a,.ogg,.aac,.flac" hidden></label><button id="bd">Detect BPM</button><label>BPM<input type="number" id="bp" value="120" min="40" max="240" step=".1" style="width:68px"></label><label><input type="checkbox" id="bz">beat zoom</label><label><input type="checkbox" id="bk">beat shake</label><button id="ad" class="pri">✨ Auto-direct</button><span class="mu" id="aus" style="flex-basis:100%">Add a song and detect its beat. Auto-direct then cuts the camera on the beat and repeats each character’s clips to fill the song.</span></div>
 <h3>6 · Camera</h3><div class="bar"><button id="ka" class="pri">+ Key at playhead</button><select id="km"><option value="glide">glide to it</option><option value="cut">cut to it</option></select><button id="ku" disabled>Update key</button><button id="kx" disabled>Delete selected</button></div>
@@ -57,7 +58,7 @@ let M=null,B=null,drv=null,roots=[],MC=null,T=0,playing=false,rec=null,PL=null;
 /* ===== scene: actors, camera keys ===== */
 R.shadowMap.enabled=true;R.shadowMap.type=THREE.PCFSoftShadowMap;
 const gnd=new THREE.Mesh(new THREE.PlaneGeometry(60,60),new THREE.MeshStandardMaterial({color:0x4a4638,roughness:1}));gnd.rotation.x=-Math.PI/2;gnd.receiveShadow=true;sc.add(gnd);
-let A=null,NN=0,free=false,SEL=null,pps=60,AB=null,AS=null,B0=0;const ACT=[],SH=[],FADE=.4,sst=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+let A=null,NN=0,free=false,SEL=null,pps=60,AB=null,AS=null,B0=0,TWK=.4,ZT=.35,ZL=1;const ACT=[],SH=[],FADE=.4,sst=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 function newActor(){const g=new THREE.Group(),n=++NN;sc.add(g);A={G:g,M:null,B:null,drv:null,roots:[],clips:[],x:ACT.length?Math.max(...ACT.map(q=>q.x))+1.2:0,z:0,yaw:0,hue:(n*67+10)%360,name:'Character '+n};ACT.push(A)}
 const useActor=a=>{A=a;M=a.M;B=a.B;drv=a.drv;roots=a.roots},place=()=>{if(A)A.G.position.set(A.x,0,A.z)},shade=o=>o.traverse(c=>{if(c.isMesh)c.castShadow=true});
 /*R1*/const side=n=>/left/.test(n)||/(^|[^a-z])l([^a-z]|$)/.test(n)?'L':/right/.test(n)||/(^|[^a-z])r([^a-z]|$)/.test(n)?'R':'';
@@ -70,12 +71,12 @@ function mapBones(root){const m={},sp=[];root.traverse(o=>{if(!o.isBone)return;c
 const DR=[['Hips',[24],[23],null,{tw:{r:'up',ta:[23,24],tb:[11,12],k:.4}}],['Spine',[23,24],[11,12],'Neck',{tw:{r:'sh',ta:[12],tb:[11],k:1}}],['Neck',[11,12],[7,8],'Head',{sw:.45,cal:1}],['Head',[11,12],[7,8],null,{tw:{r:'sh',ta:[8],tb:[7],k:1},cal:1}],['LUA',[11],[13],'LFA'],['LFA',[13],[15],'LH'],['RUA',[12],[14],'RFA'],['RFA',[14],[16],'RH'],['LH',[15],[17,19],null,{sw:.7}],['RH',[16],[18,20],null,{sw:.7}],['LUL',[23],[25],'LLL'],['LLL',[25],[27],'LF'],['RUL',[24],[26],'RLL'],['RLL',[26],[28],'RF']];
 function setup(){M.updateMatrixWorld(true);roots=[];M.traverse(b=>{if(!b.isBone)return;b.userData.rwq=b.getWorldQuaternion(new Q4());b.userData.rlq=b.quaternion.clone();b.userData.rlp=b.position.clone();b.userData.rwp=b.getWorldPosition(new V3());if(!(b.parent&&b.parent.isBone))roots.push(b)});
 drv=new Map();const rp=b=>b.userData.rwp;DR.forEach(([r,a,b,c,o])=>{const bone=B[r];if(!bone)return;let rd;if(r==='Hips')rd=rp(B.LUL).clone().sub(rp(B.RUL));else{const ch=B[c]||(r==='Spine'?B.Head:null);if(ch)rd=rp(ch).clone().sub(rp(bone));else if(bone.parent&&bone.parent.isBone)rd=rp(bone).clone().sub(rp(bone.parent));else return}rd.normalize();
-const d={a,b,rd,sw:(o&&o.sw)||1,cal:!!(o&&o.cal)};if(o&&o.tw){const t=o.tw;let v=null;if(t.r==='up'){const t2=B.Head||B.Neck||B.Spine;if(t2)v=rp(t2).clone().sub(rp(B.Hips))}else if(B.LUA&&B.RUA)v=rp(B.LUA).clone().sub(rp(B.RUA));if(v&&v.lengthSq()>1e-8)d.tw={rs:v.normalize(),ta:t.ta,tb:t.tb,k:t.k}}drv.set(bone,d)});
+const d={a,b,rd,sw:(o&&o.sw)||1,cal:!!(o&&o.cal),tor:r==='Hips'||r==='Spine'||r==='Neck'||r==='Head'};if(o&&o.tw){const t=o.tw;let v=null;if(t.r==='up'){const t2=B.Head||B.Neck||B.Spine;if(t2)v=rp(t2).clone().sub(rp(B.Hips))}else if(B.LUA&&B.RUA)v=rp(B.LUA).clone().sub(rp(B.RUA));if(v&&v.lengthSq()>1e-8)d.tw={rs:v.normalize(),ta:t.ta,tb:t.tb,k:t.k}}drv.set(bone,d)});
 A.B=B;A.drv=drv;A.roots=roots;refUI()}
 function reset(){if(M)M.traverse(b=>{if(b.isBone&&b.userData.rlq){b.quaternion.copy(b.userData.rlq);if(b.userData.rlp)b.position.copy(b.userData.rlp)}})}
-function driveQ(d,b,pt){const n=pt(d.b).sub(pt(d.a)).normalize();let tg=n;if(d.cal&&MC&&MC.hm){if(d.cq!==MC){d.cq=MC;d.cqq=new Q4().setFromUnitVectors(MC.hm,d.rd)}tg=n.clone().applyQuaternion(d.cqq)}
+function driveQ(d,b,pt){const n=pt(d.b).sub(pt(d.a));n.z*=d.tor?ZT:ZL;n.normalize();let tg=n;if(d.cal&&MC&&MC.hm){if(d.cq!==MC){d.cq=MC;d.cqq=new Q4().setFromUnitVectors(MC.hm,d.rd)}tg=n.clone().applyQuaternion(d.cqq)}
 const q1=new Q4().setFromUnitVectors(d.rd,tg);
-if(d.tw){const t=d.tw,pj=v=>v.addScaledVector(tg,-v.dot(tg)),cs=pj(t.rs.clone().applyQuaternion(q1)),ts=pj(pt(t.tb).sub(pt(t.ta)));if(cs.lengthSq()>1e-6&&ts.lengthSq()>1e-6){cs.normalize();ts.normalize();const an=Math.atan2(tg.dot(new V3().crossVectors(cs,ts)),cs.dot(ts))*t.k;q1.premultiply(new Q4().setFromAxisAngle(tg,an))}}
+if(d.tw){const t=d.tw,pj=v=>v.addScaledVector(tg,-v.dot(tg)),cs=pj(t.rs.clone().applyQuaternion(q1)),ts=pj((v=>{v.z*=ZT;return v})(pt(t.tb).sub(pt(t.ta))));if(cs.lengthSq()>1e-6&&ts.lengthSq()>1e-6){cs.normalize();ts.normalize();const an=Math.max(-.6,Math.min(.6,Math.atan2(tg.dot(new V3().crossVectors(cs,ts)),cs.dot(ts))*t.k*TWK));q1.premultiply(new Q4().setFromAxisAngle(tg,an))}}
 let wq=q1.multiply(b.userData.rwq);if(d.sw<1)wq=b.userData.rwq.clone().slerp(wq,d.sw);return wq}
 const KT=new V3();function rootMove(rt){const h=B&&B.Hips;if(!h||!h.parent)return;h.position.copy(h.userData.rlp);M.updateMatrixWorld(true);
 const feet=[B.LF,B.RF].filter(Boolean);let sh=0;if(feet.length){let lo=1e9,re=1e9;feet.forEach(f=>{lo=Math.min(lo,f.getWorldPosition(KT).y);re=Math.min(re,f.userData.rwp.y)});sh=Math.max(-.4,Math.min(.4,re-lo))}
@@ -364,6 +365,7 @@ if(err)throw err;mux.finalize();const u=URL.createObjectURL(new Blob([mux.target
 $('#out').innerHTML=`<video controls playsinline src="${u}"></video><a class="btn" download="plate-puppet-3d.mp4" href="${u}">Download MP4</a>`;st('Rendered '+fmt(D)+' at 720p, 30 fps'+(hasA?' with audio.':AB?' (this browser can’t encode AAC, so the song was left out).':'.'))}
 catch(x){st('HD export failed: '+(x.message||x)+'. Quick export still works.')}
 R.setPixelRatio(Math.min(devicePixelRatio,2));rs();T=t0;xb=false};
+[['#mt',v=>TWK=v/100],['#mz',v=>ZT=v/100],['#ml',v=>ZL=v/100]].forEach(([i,f])=>$(i).oninput=e=>f(+e.target.value));
 ctl.addEventListener('start',()=>{free=true});refUI();
 let last=0,lastT=-1;(function loop(ts){requestAnimationFrame(loop);const dt=Math.min(.1,(ts-last)/1000);last=ts;const D=dur();
 if(playing){T+=dt;if(T>=D){if($('#lp').checked&&!rec){T=0;aPlay()}else{T=D;stop()}}}
