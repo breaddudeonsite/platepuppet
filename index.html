@@ -250,11 +250,15 @@ const fx=(a,b,n)=>{const A=p.pins.find(q=>q.j===a),B=p.pins.find(q=>q.j===b);(A.
 async function aiRig(p){const r=await detect(flat(p),false),L=r.landmarks&&r.landmarks[0];if(!L)return false;const lm=L.map(q=>({x:q.x*p.w,y:q.y*p.h,v:q.visibility}));if([11,12,23,24].some(i=>lm[i].v<.3))return false;pinsFromLm(p,lm);return true}
 async function aiCut(p){const r=await detect(flat(p),true),m=r.segmentationMasks&&r.segmentationMasks[0];if(!m)return false;const f=m.getAsFloat32Array();if(f.length!==p.w*p.h){m.close();return false}
 const g=p.cut.getContext('2d'),id=g.getImageData(0,0,p.w,p.h),d=id.data;for(let i=0;i<f.length;i++)d[i*4+3]=Math.min(d[i*4+3],Math.round(Math.max(0,Math.min(1,(f[i]-.3)/.4))*255));g.putImageData(id,0,0);m.close();return true}
+function smSeries(a,sig){const n=a.length,m=new Float32Array(n),o=new Float32Array(n),R=Math.ceil(sig*2.5),ker=[];for(let d=-R;d<=R;d++)ker.push(Math.exp(-d*d/(2*sig*sig)));
+for(let i=0;i<n;i++){const w=[];for(let d=-2;d<=2;d++)w.push(a[Math.max(0,Math.min(n-1,i+d))]);w.sort((p,q)=>p-q);m[i]=w[2]}
+for(let i=0;i<n;i++){let s=0,t=0;for(let d=-R;d<=R;d++){const j=i+d;if(j<0||j>=n)continue;s+=m[j]*ker[d+R];t+=ker[d+R]}o[i]=s/t}return o}
+function smoothPts(R){const n=R.length,np=R[0].length,out=R.map(()=>[]);for(let l=0;l<np;l++){const xs=new Float32Array(n),ys=new Float32Array(n);for(let k=0;k<n;k++){xs[k]=R[k][l].x;ys[k]=R[k][l].y}const sx=smSeries(xs,1.7),sy=smSeries(ys,1.7);for(let k=0;k<n;k++)out[k][l]={x:sx[k],y:sy[k]}}return out}
 async function analyze(file){const pose=await plm();await pose.setOptions({outputSegmentationMasks:false});const v=document.createElement('video');v.muted=true;v.playsInline=true;v.src=URL.createObjectURL(file);await new Promise((r,j)=>{v.onloadedmetadata=r;v.onerror=j});
 const fps=15,n=Math.floor(Math.min(v.duration,600)*fps),c=cvs(Math.min(640,v.videoWidth),1);c.height=Math.round(c.width*v.videoHeight/v.videoWidth);const g=c.getContext('2d'),ar=c.width/c.height;let R=[];
 for(let k=0;k<n;k++){const sk=new Promise(r=>v.onseeked=r);v.currentTime=(k+.5)/fps;await sk;g.drawImage(v,0,0,c.width,c.height);const L=pose.detect(c).landmarks[0];R.push(L?L.map(q=>({x:q.x*ar,y:q.y})):null);if(k%5===0)st2('Analyzing reference '+Math.round(k/n*100)+'%')}
 URL.revokeObjectURL(v.src);const f0=R.find(q=>q);if(!f0)throw new Error('no person found in the video');let last=f0;R=R.map(q=>last=q||last);
-const S=R.map((_,k)=>R[0].map((_,i)=>{let x=0,y=0,m=0;for(let d=-2;d<=2;d++){const q=R[k+d];if(q){x+=q[i].x;y+=q[i].y;m++}}return{x:x/m,y:y/m}})),Ls=S.map(a=>Math.hypot(P2(a,'sh').x-P2(a,'hp').x,P2(a,'sh').y-P2(a,'hp').y)).sort((a,b)=>a-b);REF={S,fps,a0:S[0],Lr:Ls[Ls.length>>1]}}
+const S=smoothPts(R),Ls=S.map(a=>Math.hypot(P2(a,'sh').x-P2(a,'hp').x,P2(a,'sh').y-P2(a,'hp').y)).sort((a,b)=>a-b);REF={S,fps,a0:S[0],Lr:Ls[Ls.length>>1]}}
 function applyMo(p){const lc=p.lm,sh=P2(lc,'sh'),hp=P2(lc,'hp'),s=Math.hypot(sh.x-hp.x,sh.y-hp.y)/REF.Lr,a0=REF.a0,len=(i,j)=>Math.hypot(lc[j].x-lc[i].x,lc[j].y-lc[i].y);
 p.mc=REF.S.map(a=>{const tg={},d=j=>{const A=P2(a,j),B=P2(a0,j);return[(A.x-B.x)*s,(A.y-B.y)*s]},u=(i,j)=>{const x=a[j].x-a[i].x,y=a[j].y-a[i].y,l=Math.hypot(x,y)||1;return[x/l,y/l]};
 ['nose','mouth','sh','hp'].forEach(j=>{const r=P2(lc,j),e=d(j);tg[j]=[r.x+e[0],r.y+e[1]]});
